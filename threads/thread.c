@@ -112,6 +112,7 @@ thread_init (void) {
 	/* Init the globla thread context */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
+	list_init (&sleep_list); /* Project1-1 */
 	list_init (&destruction_req);
 
 	/* Set up a thread structure for the running thread. */
@@ -156,6 +157,20 @@ thread_tick (void) {
 	/* Enforce preemption. */
 	if (++thread_ticks >= TIME_SLICE)
 		intr_yield_on_return ();
+}
+
+/* Project1-1 */
+void 
+set_next_tick(int64_t ticks)
+{
+	next_tick = MIN(next_tick, ticks)
+}
+
+/* Project1-1 */
+int64_t 
+get_next_tick(void)
+{
+	return next_tick;
 }
 
 /* Prints thread statistics. */
