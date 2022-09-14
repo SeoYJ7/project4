@@ -143,8 +143,10 @@ int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
 
+/* Project1-1 */
 void thread_wait(int64_t ticks);
 void thread_awake(int64_t ticks);
 void set_next_tick(int64_t ticks);
 int64_t get_next_tick(void);
+
 #endif /* threads/thread.h */
