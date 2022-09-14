@@ -137,6 +137,51 @@ thread_start (void) {
 	sema_down (&idle_started);
 }
 
+/* Project 1-1 */
+/* change running thread to sleep state */
+/* 
+현재의 thread가 idle이 아니면 status를 THREAD_BLOCKED로 바꾸고 깨어나야 할 ticks를 저장
+sleep_list에 추가하고 awake 함수가 실행되어야 할 tick 값을 update
+ */
+void thread_sleep(int64_t ticks) {
+	struct thread *curr = thread_current ();
+	enum intr_level old_level;
+
+	ASSERT (!intr_context ());
+
+	old_level = intr_disable ();
+	if (curr != idle_thread) {
+		list_push_back (&sleep_list, &curr->elem);
+		&curr->status = THREAD_BLOCKED;
+		&curr->wakeup_tick = ticks;
+	}
+	do_schedule (THREAD_READY);
+	intr_set_level (old_level);
+}
+
+/* awake thread from wait queue */
+/* 
+wait list에 있는 thread를 둘러보면서 wakeup_tick 변수가 ticks보다 작거나 같으면 wake 시킨다.
+이 때 wake 시킨다는 것은 ready list에 thread를 옮기고 status를 THREAD_READY로 바꾸는 것을 의미.
+thread의 wakeup_tick이 ticks보다 작거나 같은 thread를 깨운다 (READY 상태로 즉, status는 THREAD_READY, ready_list에 추가)
+현재 sleep thread의 wakeup_tick 중에서 가장 작은 값을 next_
+ */
+void thread_awake(int64_t ticks) {
+	struct thread *temp_thread;
+	list_elem *temp_elem = &sleep_list->head;
+	while temp_elem {
+		temp_thread = list_entry(temp_elem, struct thread, elem); // sleep_list의 head 저렇게 넣는거 에러 안뜨는지 확인
+		if (temp_thread->wakeup_tick <= ticks) {
+			list_remove(temp_elem);
+			temp_thread->status = THREAD_READY;
+			list_push_back(&ready_list, temp_elem);
+		}
+		if (temp_thread->wakeup_tick < next_tick) 
+			set_next_tick(temp->wakeup_tick);
+		temp_elem = temp_elem -> next;
+	}
+}
+
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
 void
