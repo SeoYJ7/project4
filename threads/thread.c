@@ -169,8 +169,9 @@ thread의 wakeup_tick이 ticks보다 작거나 같은 thread를 깨운다 (READY
  */
 void thread_awake(int64_t ticks) {
 	struct thread *temp_thread;
-	struct list_elem *temp_elem = &(sleep_list.head);
-	while (temp_elem) {
+	struct list_elem *temp_elem;
+	/* struct list_elem *temp_elem = &(sleep_list.head); */
+	for (temp_elem = list_begin (&sleep_list); temp_elem != list_end (&sleep_list); temp_elem = list_next (temp_elem)){
 		temp_thread = list_entry(temp_elem, struct thread, elem); // sleep_list의 head 저렇게 넣는거 에러 안뜨는지 확인
 		if (temp_thread->wakeup_tick <= ticks) {
 			list_remove(temp_elem);
@@ -179,7 +180,7 @@ void thread_awake(int64_t ticks) {
 		}
 		if (temp_thread->wakeup_tick < next_tick) 
 			set_next_tick(temp_thread->wakeup_tick);
-		temp_elem = temp_elem -> next;
+		/*temp_elem = temp_elem -> next;*/
 	}
 }
 
@@ -208,7 +209,7 @@ thread_tick (void) {
 void 
 set_next_tick(int64_t ticks)
 {
-	next_tick = MIN(next_tick, ticks);
+	next_tick = (((next_tick) < (ticks)) ? (next_tick) : (ticks));
 }
 
 /* Project1-1 */
