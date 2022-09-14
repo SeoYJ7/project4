@@ -95,6 +95,12 @@ struct thread {
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 
+	/* project1-2 */
+	int init_priority;
+	struct list donations;
+	struct list_elem donation_elem;
+	struct lock *wait_lock;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
@@ -135,6 +141,13 @@ void thread_yield (void);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
+
+/* Project1-2 */
+void max_priority (void); 
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux x);
+void donate_priority(void);
+void remove_lock(struct lock *lock);
+void update_priority(void);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
