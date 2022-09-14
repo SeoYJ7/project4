@@ -208,7 +208,7 @@ thread_tick (void) {
 void 
 set_next_tick(int64_t ticks)
 {
-	next_tick = MIN(next_tick, ticks)
+	next_tick = MIN(next_tick, ticks);
 }
 
 /* Project1-1 */
