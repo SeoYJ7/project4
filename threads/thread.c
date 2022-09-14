@@ -28,6 +28,10 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/* Project1-1 */
+static struct list sleep_list;
+int64_t next_tick = INT64_MAX;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
