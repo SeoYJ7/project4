@@ -153,8 +153,8 @@ void thread_sleep(int64_t ticks) {
 	old_level = intr_disable ();
 	if (curr != idle_thread) {
 		list_push_back (&sleep_list, &curr->elem);
-		&curr->status = THREAD_BLOCKED;
-		&curr->wakeup_tick = ticks;
+		curr->status = THREAD_BLOCKED;
+		curr->wakeup_tick = ticks;
 	}
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
@@ -169,8 +169,8 @@ thread의 wakeup_tick이 ticks보다 작거나 같은 thread를 깨운다 (READY
  */
 void thread_awake(int64_t ticks) {
 	struct thread *temp_thread;
-	list_elem *temp_elem = &sleep_list->head;
-	while temp_elem {
+	struct list_elem *temp_elem = &(sleep_list.head);
+	while (temp_elem) {
 		temp_thread = list_entry(temp_elem, struct thread, elem); // sleep_list의 head 저렇게 넣는거 에러 안뜨는지 확인
 		if (temp_thread->wakeup_tick <= ticks) {
 			list_remove(temp_elem);
@@ -178,7 +178,7 @@ void thread_awake(int64_t ticks) {
 			list_push_back(&ready_list, temp_elem);
 		}
 		if (temp_thread->wakeup_tick < next_tick) 
-			set_next_tick(temp->wakeup_tick);
+			set_next_tick(temp_thread->wakeup_tick);
 		temp_elem = temp_elem -> next;
 	}
 }
