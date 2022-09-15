@@ -277,6 +277,9 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
+	/* Project1-2 */
+	max_priority ();
+	
 	return tid;
 }
 
@@ -402,27 +405,12 @@ thread_yield (void) {
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
-	/* project 1-2 start */
-	if (curr != idle_thread) {
-		struct thread *head = list_entry(list_begin(&ready_list), struct thread, elem);
-		struct thread *tail = list_entry(list_end(&ready_list), struct thread, elem);
-		// (1) 만약 ready_list의 head보다도 priority가 높다면 list_insert 쓰지 않고 list_push_front로 넣는다.
-		if (curr->priority > head->priority)
-			list_push_front(&ready_list, &curr->elem);
-		// (2) 만약 ready_list의 tail보다도 priority가 작다면 list_push_back
-		else if (curr->priority < tail->priority)
-			list_push_back(&ready_list, &curr->elem);
-		// (3) ready_list의 begin부터 iterate하면서 t의 priority가 더 큰 순간 그 thread 앞에 list_insert 함수 사용하여 추가
-		else {
-			struct thread *temp = head;
-			while (&temp->elem != list_tail(&ready_list)) {
-				if (curr->priority > temp->priority)
-					list_insert(&temp->elem, &curr->elem);
-				temp = list_entry(temp->elem.next, struct thread, elem);
-			}
-		}
-	}
-	/* project 1-2 end */
+	if (curr != idle_thread)
+		/* list_push_back (&ready_list, &curr->elem); */
+		
+		/* Project1-2 */
+		list_insert_ordered (&ready_list, &curr->elem, compare_priority, 0)
+
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -437,6 +425,14 @@ thread_set_priority (int new_priority) {
 int
 thread_get_priority (void) {
 	return thread_current ()->priority;
+}
+
+/* project1-2 */
+void max_priority (void)
+{
+	if (!list_empty (&ready_list))
+		if (compare_priority (list_begin(&ready_list), &(thread_current()->elem), 0))
+			thread_yield ();
 }
 
 /* Sets the current thread's nice value to NICE. */
