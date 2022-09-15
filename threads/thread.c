@@ -321,7 +321,7 @@ thread_unblock (struct thread *t) {
 	ASSERT (t->status == THREAD_BLOCKED);
 
 	/* project 1-2 */
-	list_insert_ordered (&ready_list, &t->elem, compare_priority, 0)
+	list_insert_ordered (&ready_list, &t->elem, compare_priority, NULL);
 
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
@@ -392,16 +392,23 @@ thread_yield (void) {
 		/* list_push_back (&ready_list, &curr->elem); */
 		
 		/* Project1-2 */
-		list_insert_ordered (&ready_list, &curr->elem, compare_priority, 0)
+		list_insert_ordered (&ready_list, &curr->elem, compare_priority, NULL);
 
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
+/* project 1-2 */
+/*
+thread의 우선순위가 변경되었을 때 우선순위에 따라 선점(yield)이 발생하도록 한다.
+이 함수가 현재 thread의 우선순위를 변경시키는 것이므로 현재 thread보다 ready_list의 max priority가 더 높은 경우 yield 시키도록 코드 수정
+*/
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	/* project 1-2 */
+	max_priority();
 }
 
 /* Returns the current thread's priority. */
@@ -414,8 +421,19 @@ thread_get_priority (void) {
 void max_priority (void)
 {
 	if (!list_empty (&ready_list))
-		if (compare_priority (list_begin(&ready_list), &(thread_current()->elem), 0))
+		if (compare_priority (list_begin(&ready_list), &(thread_current()->elem), NULL))
 			thread_yield ();
+}
+
+/* project 1-2 */
+/*
+priority가 a > b이면 1 return, a < b이면 0 return. list_insert_ordered에서 사용할 수 있도록 정렬 방법을 결정하기 위한 함수 작성
+*/
+bool compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
+	struct thread *a_thread = list_entry(a, struct thread, elem);
+	struct thread *b_thread = list_entry(b, struct thread, elem);
+
+	return (a_thread->priority > b_thread->priority ? true : false);
 }
 
 /* Sets the current thread's nice value to NICE. */

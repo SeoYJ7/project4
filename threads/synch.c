@@ -67,8 +67,10 @@ sema_down (struct semaphore *sema) {
 	old_level = intr_disable ();
 	while (sema->value == 0) {
 		list_push_back (&sema->waiters, &thread_current ()->elem);
+
 		/* Project1-2 */
-		// list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, 1)
+		//list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, 1);
+
 		thread_block ();
 	}
 	sema->value--;
@@ -159,14 +161,15 @@ bool
 compare_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
 	struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
 	struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
-	la = &(sa->semaphore.waiters)
-	lb = &(sb->semaphore.waiters)
-	list_sort(la, compare_priority, 0)
-	list_sort(la, compare_priority, 0)
-	
-	pa = la.head.priority
-	pb = lb.
+	struct list *la = &(sa->semaphore.waiters);
+	struct list *lb = &(sb->semaphore.waiters);
+	list_sort(la, compare_priority, 0);
+	list_sort(la, compare_priority, 0);
 
+	int pa = list_entry(list_begin(la), struct thread, elem)->priority;
+	int pb = list_entry(list_begin(lb), struct thread, elem)->priority;
+
+	return pa > pb;
 }
 */
 
