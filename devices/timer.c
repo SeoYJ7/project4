@@ -138,7 +138,7 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 	}
 	//4 tick마다 현재 thread의 priority 재계산
 	if (!(ticks % 4))
-		advanced_priority();
+		advanced_priority(thread_current());
 	/* end */
 	thread_awake (ticks);
 }
