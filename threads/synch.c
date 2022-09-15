@@ -213,13 +213,15 @@ lock_acquire (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
-
-	/* project 1-2 */
-	struct thread *curr = thread_current();
-	if (lock->holder != NULL) {
-		curr->wait_lock = lock;
-		list_push_back(&lock->holder->donations, &curr->donation_elem);
-		donate_priority();
+	/* project 1-3 */
+	if (!thread_mlfqs){
+		/* project 1-2 */
+		struct thread *curr = thread_current();
+		if (lock->holder != NULL) {
+			curr->wait_lock = lock;
+			list_push_back(&lock->holder->donations, &curr->donation_elem);
+			donate_priority();
+		}
 	}
 	sema_down (&lock->semaphore); //기존 코드
 	lock->holder = thread_current (); //기존 코드
@@ -277,9 +279,12 @@ lock_release (struct lock *lock) {
 
 	lock->holder = NULL;
 	
-	/* project1-2 */
-	remove_donate_of_lock(lock);
-	update_priority();
+	/* project 1-3 */
+	if (!thread_mlfqs){
+		/* project1-2 */
+		remove_donate_of_lock(lock);
+		update_priority();
+	}
 
 	sema_up (&lock->semaphore);
 }
