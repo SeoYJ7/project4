@@ -101,6 +101,10 @@ struct thread {
 	struct list_elem donation_elem;
 	struct lock *wait_lock;
 
+	/* project1-3 */
+	int nice;
+	int recent_cpu;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
@@ -162,5 +166,12 @@ void thread_sleep(int64_t ticks);
 void thread_awake(int64_t ticks);
 void set_next_tick(int64_t ticks);
 int64_t get_next_tick(void);
+
+/* Project1-3 */
+void advanced_priority (struct thread *t);
+void advanced_recent_cpu (struct thread *t);
+void advanced_load_avg (void);
+void advanced_inc (void);
+void advanced_recal (void);
 
 #endif /* threads/thread.h */
