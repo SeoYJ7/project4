@@ -206,12 +206,12 @@ void donate_priority(void){
 /*
 lock을 요구하는 함수이다.
 case 1) 해당 Lock의 주인(holder)가 존재 
-	(1) curr thread의  wait_on_lock 변수에 획득을 기다리는 Lock의 주소(인수로 넘긴 lock인 듯) 저장
+	(1) curr thread의  wait_lock 변수에 획득을 기다리는 Lock의 주소(인수로 넘긴 lock인 듯) 저장
 	(2) multiple donation을 고려하기 위해 이전 상태의 우선순위 기억 (더 높은 놈한테 donate 받기 전의 priority를 기억) 및 donation 받은 thread의 struct를 list로 관리 → donations에 list로 관리하라는 의미인 듯
 	(3) priority donation을 수행하기 위해 donate_priority() 호출
 case 2) lock holde가 없다면
 	기존 코드 유지 : sema_down 및 lock holder을 curr thread로
-	추가 : curr thread의 wait_on_lock pointer을 NULL로 바꾸기
+	추가 : curr thread의 wait_lock pointer을 NULL로 바꾸기
 */
 void
 lock_acquire (struct lock *lock) {
@@ -236,9 +236,20 @@ lock_acquire (struct lock *lock) {
 
 /* project 1-2 */
 /*
-lock을 release 시킬 때 
+lock을 release 시킬 때 curr thread의 donations 리스트에서 release 시킨 Lock을 위해 나에게 donate 했던 thread를 remove 시킨다.
+즉 curr thread의 donations 중에서 wait_lock이 lock pointer와 동일한 경우 donations list에서 제거해야 한다.
 */
 void remove_donate_of_lock(struct lock *lock) {
+	struct thread *curr = thread_current();
+	struct thread *temp_thread;
+
+	struct list_elem *temp = list_head(&curr->donations);
+	while (temp != list_tail(&curr->donations)) {
+		temp_thread = list_entry(temp, struct thread, elem);
+		if (temp_thread->wait_lock == lock)
+			list_remove(temp);
+		temp = list_next(temp);
+	}
 
 }
 /* Tries to acquires LOCK and returns true if successful or false
