@@ -145,8 +145,9 @@ void thread_set_priority (int);
 /* Project1-2 */
 void max_priority (void); 
 bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+/* Project1-2 */
 void donate_priority(void);
-void remove_lock(struct lock *lock);
+void remove_donate_of_lock(struct lock *lock);
 void update_priority(void);
 
 int thread_get_nice (void);
