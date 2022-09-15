@@ -234,6 +234,13 @@ lock_acquire (struct lock *lock) {
 	
 }
 
+/* project 1-2 */
+/*
+lock을 release 시킬 때 
+*/
+void remove_donate_of_lock(struct lock *lock) {
+
+}
 /* Tries to acquires LOCK and returns true if successful or false
    on failure.  The lock must not already be held by the current
    thread.
