@@ -19,7 +19,7 @@ int fp_to_int_floor(int x){
     return x/f;
 }
 int fp_to_int_round(int x) {
-    if x >= 0
+    if (x >= 0)
         return (x + f/2)/f;
     else
         return (x-f/2)/f;
