@@ -13,6 +13,8 @@
 #include "intrinsic.h"
 #ifdef USERPROG
 #include "userprog/process.h"
+/* project 1-3 */
+#include "threads/arithmetic.h"
 #endif
 
 /* Random value for struct thread's `magic' member.
@@ -31,6 +33,9 @@ static struct list ready_list;
 /* Project1-1 */
 static struct list sleep_list;
 int64_t next_tick = INT64_MAX;
+
+/* project 1-3 */
+int load_avg;
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -130,6 +135,8 @@ thread_start (void) {
 	struct semaphore idle_started;
 	sema_init (&idle_started, 0);
 	thread_create ("idle", PRI_MIN, idle, &idle_started);
+	/* project 1-3 */
+	load_avg = 0;
 
 	/* Start preemptive thread scheduling. */
 	intr_enable ();
@@ -560,6 +567,10 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->init_priority = priority;
 	list_init(&t->donations);
 	t->wait_lock = NULL;
+	/* project 1-3 */
+	t->nice = 0;
+	t->recent_cpu = 0;
+	
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
