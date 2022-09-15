@@ -415,7 +415,6 @@ void update_priority(void)
 		int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
 		t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
 	}
-	
 }
 
 /* project 1-2 */
@@ -475,6 +474,42 @@ bool compare_priority(const struct list_elem *a, const struct list_elem *b, void
 
 	return (a_thread->priority > b_thread->priority ? true : false);
 }
+
+/* project1-3 */
+void advanced_priority (struct thread *t)
+{	
+	if (t != idle_thread) {
+		// PRI_MAX – (recent_cpu / 4) – (nice * 2)
+		t->priority = fp_to_int_round (fp_sub_int (fp_add_int (fp_div_int (t->recent_cpu, -4), PRI_MAX), t->nice * 2));
+	}
+}
+/* project1-3 */
+void advanced_recent_cpu (struct thread *t)
+{
+	if (t != idle_thread) {
+		// recent_cpu = (2 * load_avg) / (2 * load_avg + 1) * recent_cpu + nice
+		t->priority = fp_add_int (fp_mul_fp (fp_div_fp (fp_mul_int (load_avg, 2), fp_add_int (mul_fp_int (load_avg, 2), 1)), t->recent_cpu), t->nice);
+	}
+}
+/* project1-3 */
+void advanced_load_avg (void)
+{
+	// load_avg = (59/60) * load_avg + (1/60) * ready_threads
+	int ready_threads = (t != idle_thread) ? (list_size(&ready_list) + 1) : (list_size(&ready_list));
+	load_avg = fp_add_fp (fp_mul_fp (fp_div_fp (int_to_fp (59), int_to_fp (60)), load_avg), fp_mul_int (fp_div_fp (int_to_fp (1), int_to_fp (60)), ready_threads));
+}
+/* project1-3 */
+void advanced_inc (void)
+{
+	if (thread_current() != idle_thread) 
+		thread_current()->recent_cpu = add_fp_int (thread_current()->recent_cpu, 1);
+}
+/* project1-3 */
+void advanced_recalc (void)
+{
+	
+}
+
 
 /* Sets the current thread's nice value to NICE. */
 void

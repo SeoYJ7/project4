@@ -167,4 +167,11 @@ void thread_awake(int64_t ticks);
 void set_next_tick(int64_t ticks);
 int64_t get_next_tick(void);
 
+/* Project1-3 */
+void advanced_priority (struct thread *t);
+void advanced_recent_cpu (struct thread *t);
+void advanced_load_avg (void);
+void advanced_inc (void);
+void advanced_recal (void);
+
 #endif /* threads/thread.h */
