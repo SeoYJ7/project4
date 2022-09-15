@@ -222,9 +222,9 @@ lock_acquire (struct lock *lock) {
 		donate_priority();
 	}
 	else {
+		thread_current()->wait_lock = NULL;
 		sema_down (&lock->semaphore); //기존 코드
 		lock->holder = thread_current (); //기존 코드
-		thread_current()->wait_lock = NULL;
 	}
 	
 }
@@ -240,7 +240,7 @@ void remove_donate_of_lock(struct lock *lock) {
 
 	struct list_elem *temp = list_head(&curr->donations);
 	while (temp != list_tail(&curr->donations)) {
-		temp_thread = list_entry(temp, struct thread, elem);
+		temp_thread = list_entry(temp, struct thread, donation_elem);
 		if (temp_thread->wait_lock == lock)
 			list_remove(temp);
 		temp = list_next(temp);
