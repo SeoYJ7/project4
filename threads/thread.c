@@ -11,10 +11,10 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
-#ifdef USERPROG
-#include "userprog/process.h"
 /* project 1-3 */
 #include "threads/arithmetic.h"
+#ifdef USERPROG
+#include "userprog/process.h"
 #endif
 
 /* Random value for struct thread's `magic' member.
@@ -515,27 +515,37 @@ void advanced_recalc (void)
 void
 thread_set_nice (int nice UNUSED) {
 	/* TODO: Your implementation goes here */
+	/* project 1-3 */
+	enum intr_level old_level;
+	old_level = intr_disable ();
+	thread_current()->nice = nice;
+	advanced_priority(thread_current());
+	max_priority();
+	intr_set_level (old_level);
+
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) {
 	/* TODO: Your implementation goes here */
-	return 0;
+	/* project 1-3 */
+	return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) {
 	/* TODO: Your implementation goes here */
-	return 0;
+	return fp_mul_int(load_avg, 100);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) {
 	/* TODO: Your implementation goes here */
-	return 0;
+	/* project 1-3 */
+	return fp_mul_int(thread_current()->recent_cpu, 100);
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
