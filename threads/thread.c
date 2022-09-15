@@ -442,10 +442,13 @@ update_priority 함수 사용하여 우선 순위 변경으로 인한 donation �
 */
 void
 thread_set_priority (int new_priority) {
+	/* project 1-3 */
+	if (thread_mlfqs)
+		return;
 	/* project 1-2 */
 	thread_current ()->init_priority = new_priority;
 	update_priority();
-	// donate_priority();
+	
 	max_priority();
 }
 
@@ -479,7 +482,7 @@ void advanced_priority (struct thread *t)
 {	
 	if (t != idle_thread) {
 		// PRI_MAX – (recent_cpu / 4) – (nice * 2)
-		t->priority = fp_to_int_round (fp_sub_int (fp_add_int (fp_div_int (t->recent_cpu, -4), PRI_MAX), t->nice * 2));
+		t->priority = fp_to_int_floor (fp_sub_int (fp_add_int (fp_div_int (t->recent_cpu, -4), PRI_MAX), t->nice * 2));
 	}
 }
 /* project1-3 */
@@ -487,7 +490,7 @@ void advanced_recent_cpu (struct thread *t)
 {
 	if (t != idle_thread) {
 		// recent_cpu = (2 * load_avg) / (2 * load_avg + 1) * recent_cpu + nice
-		t->priority = fp_add_int (fp_mul_fp (fp_div_fp (fp_mul_int (load_avg, 2), fp_add_int (fp_mul_int (load_avg, 2), 1)), t->recent_cpu), t->nice);
+		t->recent_cpu = fp_add_int (fp_mul_fp (fp_div_fp (fp_mul_int (load_avg, 2), fp_add_int (fp_mul_int (load_avg, 2), 1)), t->recent_cpu), t->nice);
 	}
 }
 /* project1-3 */
@@ -523,27 +526,34 @@ void advanced_recal (void)
 void
 thread_set_nice (int nice UNUSED) {
 	/* TODO: Your implementation goes here */
+	/* project 1-3 */
+	thread_current()->nice = nice;
+	advanced_priority(thread_current());
+	max_priority();
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) {
 	/* TODO: Your implementation goes here */
-	return 0;
+	/* project 1-3 */
+	return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) {
 	/* TODO: Your implementation goes here */
-	return 0;
+	/* project 1-3 */
+	return fp_to_int_round(fp_mul_int(load_avg, 100));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) {
 	/* TODO: Your implementation goes here */
-	return 0;
+	/* project 1-3 */
+	return fp_to_int_round(fp_mul_int(thread_current()->recent_cpu, 100));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.

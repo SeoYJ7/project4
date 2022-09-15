@@ -129,6 +129,17 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+	/* project 1-3 */
+	advanced_inc();
+	//1초마다 load_avg, 모든 thread의 recent_cpu, priority 재계산 1초 : ticks를 TIMER_FREQ로 나눈 값
+	if (!(ticks % TIMER_FREQ)) {
+		advanced_load_avg();
+		advanced_recal();
+	}
+	//4 tick마다 현재 thread의 priority 재계산
+	if (!(ticks % 4))
+		advanced_priority(thread_current());
+	/* end */
 	thread_awake (ticks);
 }
 
