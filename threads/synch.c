@@ -159,9 +159,14 @@ bool
 compare_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
 	struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
 	struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
-	list_sort(&(sa->semaphore.waiters), compare_priority, 0)
-	list_sort(&(sb->semaphore.waiters), compare_priority, 0)
+	la = &(sa->semaphore.waiters)
+	lb = &(sb->semaphore.waiters)
+	list_sort(la, compare_priority, 0)
+	list_sort(la, compare_priority, 0)
 	
+	pa = la.head.priority
+	pb = lb.
+
 }
 */
 
