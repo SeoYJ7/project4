@@ -26,6 +26,8 @@
    Do not modify this value. */
 #define THREAD_BASIC 0xd42df210
 
+/* project1-3 */
+
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
@@ -488,26 +490,35 @@ void advanced_recent_cpu (struct thread *t)
 {
 	if (t != idle_thread) {
 		// recent_cpu = (2 * load_avg) / (2 * load_avg + 1) * recent_cpu + nice
-		t->priority = fp_add_int (fp_mul_fp (fp_div_fp (fp_mul_int (load_avg, 2), fp_add_int (mul_fp_int (load_avg, 2), 1)), t->recent_cpu), t->nice);
+		t->priority = fp_add_int (fp_mul_fp (fp_div_fp (fp_mul_int (load_avg, 2), fp_add_int (fp_mul_int (load_avg, 2), 1)), t->recent_cpu), t->nice);
 	}
 }
 /* project1-3 */
 void advanced_load_avg (void)
 {
 	// load_avg = (59/60) * load_avg + (1/60) * ready_threads
-	int ready_threads = (t != idle_thread) ? (list_size(&ready_list) + 1) : (list_size(&ready_list));
+	int ready_threads = (thread_current() != idle_thread) ? (list_size(&ready_list) + 1) : (list_size(&ready_list));
 	load_avg = fp_add_fp (fp_mul_fp (fp_div_fp (int_to_fp (59), int_to_fp (60)), load_avg), fp_mul_int (fp_div_fp (int_to_fp (1), int_to_fp (60)), ready_threads));
 }
 /* project1-3 */
 void advanced_inc (void)
 {
 	if (thread_current() != idle_thread) 
-		thread_current()->recent_cpu = add_fp_int (thread_current()->recent_cpu, 1);
+		thread_current()->recent_cpu = fp_add_int (thread_current()->recent_cpu, 1);
 }
 /* project1-3 */
-void advanced_recalc (void)
-{
-	
+void advanced_recal (void)
+{	
+	advanced_recent_cpu(thread_current());
+	advanced_priority(thread_current());
+	for (struct list_elem *e = list_begin(&ready_list); e != list_tail(&ready_list); e = list_next(e)){
+		advanced_recent_cpu(list_entry (e, struct thread, elem));
+		advanced_priority(list_entry (e, struct thread, elem));
+	}
+	for (struct list_elem *e = list_begin(&sleep_list); e != list_tail(&sleep_list); e = list_next(e)){
+		advanced_recent_cpu(list_entry (e, struct thread, elem));
+		advanced_priority(list_entry (e, struct thread, elem));
+	}
 }
 
 
