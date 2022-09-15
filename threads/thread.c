@@ -425,6 +425,10 @@ void max_priority (void)
 			thread_yield ();
 }
 
+void compare_priority(const struct list_elem *a, const struct list_elem *b, int x){
+
+}
+
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) {
