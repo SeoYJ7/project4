@@ -399,9 +399,16 @@ thread_yield (void) {
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
+/* project 1-2 */
+/*
+thread의 우선순위가 변경되었을 때 우선순위에 따라 선점(yield)이 발생하도록 한다.
+이 함수가 현재 thread의 우선순위를 변경시키는 것이므로 현재 thread보다 ready_list의 max priority가 더 높은 경우 yield 시키도록 코드 수정
+*/
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	/* project 1-2 */
+	max_priority();
 }
 
 /* Returns the current thread's priority. */
