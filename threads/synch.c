@@ -283,6 +283,11 @@ lock_release (struct lock *lock) {
 	ASSERT (lock_held_by_current_thread (lock));
 
 	lock->holder = NULL;
+	
+	/* project1-2 */
+	remove_donate_of_lock(lock);
+	update_priority();
+
 	sema_up (&lock->semaphore);
 }
 
@@ -309,8 +314,6 @@ compare_sem_priority (const struct list_elem *a, const struct list_elem *b, void
 	struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
 	struct list *la = &(sa->semaphore.waiters);
 	struct list *lb = &(sb->semaphore.waiters);
-	//list_sort(la, compare_priority, NULL);
-	//list_sort(la, compare_priority, NULL);
 
 	int pa = list_entry(list_begin(la), struct thread, elem)->priority;
 	int pb = list_entry(list_begin(lb), struct thread, elem)->priority;

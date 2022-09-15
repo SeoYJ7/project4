@@ -435,6 +435,25 @@ bool compare_priority(const struct list_elem *a, const struct list_elem *b, void
 
 	return (a_thread->priority > b_thread->priority ? true : false);
 }
+/* project 1-2 */
+void donate_priority(void)
+{
+	struct thread *t = thread_current();
+	for(int i=0; i<8; i++){
+    	if (t->wait_lock == NULL) break;
+		struct thread *h = (t->wait_lock)->holder;
+		h->priority = t->priority;
+		t = h;
+	}
+}
+/* project 1-2 */
+void update_priority(void)
+{
+	struct thread *t = thread_current();
+	t->priority = t->init_priority;
+	int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
+	t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
+}
 
 /* Sets the current thread's nice value to NICE. */
 void
@@ -525,6 +544,11 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+
+	/* project1-2 */
+	t->init_priority = priority;
+	list_init(&t->donations);
+	t->wait_lock = NULL;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
