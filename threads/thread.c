@@ -403,8 +403,12 @@ void update_priority(void)
 {
 	struct thread *t = thread_current();
 	t->priority = t->init_priority;
-	int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
-	t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
+	if (!list_empty(&t->donations)) {
+		list_sort(&t->donations, compare_priority, NULL);
+		int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
+		t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
+	}
+	
 }
 
 /* project 1-2 */
@@ -414,8 +418,7 @@ void donate_priority(void)
 	for(int i=0; i<8; i++){
     	if (t->wait_lock == NULL) break;
 		struct thread *h = (t->wait_lock)->holder;
-		if (h->priority < t->priority)
-			h->priority = t->priority;
+		h->priority = t->priority;
 		t = h;
 	}
 }
@@ -431,9 +434,9 @@ update_priority 함수 사용하여 우선 순위 변경으로 인한 donation �
 */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
 	/* project 1-2 */
-	// update_priority();
+	thread_current ()->init_priority = new_priority;
+	update_priority();
 	// donate_priority();
 	max_priority();
 }
