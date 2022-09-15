@@ -425,8 +425,15 @@ void max_priority (void)
 			thread_yield ();
 }
 
-void compare_priority(const struct list_elem *a, const struct list_elem *b, int x){
+/* project 1-2 */
+/*
+priority가 a > b이면 1 return, a < b이면 0 return. list_insert_ordered에서 사용할 수 있도록 정렬 방법을 결정하기 위한 함수 작성
+*/
+bool compare_priority(const struct list_elem *a, const struct list_elem *b, int x){
+	struct thread *a_thread = list_entry(a, struct thread, elem);
+	struct thread *b_thread = list_entry(b, struct thread, elem);
 
+	return (a->priority > b->priority ? true : false);
 }
 
 /* Sets the current thread's nice value to NICE. */
