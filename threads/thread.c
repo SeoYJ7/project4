@@ -398,16 +398,43 @@ thread_yield (void) {
 	intr_set_level (old_level);
 }
 
+/* project 1-2 */
+void update_priority(void)
+{
+	struct thread *t = thread_current();
+	t->priority = t->init_priority;
+	int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
+	t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
+}
+
+/* project 1-2 */
+void donate_priority(void)
+{
+	struct thread *t = thread_current();
+	for(int i=0; i<8; i++){
+    	if (t->wait_lock == NULL) break;
+		struct thread *h = (t->wait_lock)->holder;
+		if (h->priority < t->priority)
+			h->priority = t->priority;
+		t = h;
+	}
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 /* project 1-2 */
 /*
 thread의 우선순위가 변경되었을 때 우선순위에 따라 선점(yield)이 발생하도록 한다.
 이 함수가 현재 thread의 우선순위를 변경시키는 것이므로 현재 thread보다 ready_list의 max priority가 더 높은 경우 yield 시키도록 코드 수정
+
+update_priority 함수 사용하여 우선 순위 변경으로 인한 donation 정보 갱신 (curr thread의 Priority가 변했는데 이 변경된 priority를 기존 priority로 봤을 때 curr thread가 donate을 받아야 하는지 결정)
+→ donate_priority(), max_pariority() 함수를 적절히 사용하여 Priority donation을 수행하고 scheduling
 */
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
 	/* project 1-2 */
+	// update_priority();
+	// donate_priority();
 	max_priority();
 }
 
@@ -434,25 +461,6 @@ bool compare_priority(const struct list_elem *a, const struct list_elem *b, void
 	struct thread *b_thread = list_entry(b, struct thread, elem);
 
 	return (a_thread->priority > b_thread->priority ? true : false);
-}
-/* project 1-2 */
-void donate_priority(void)
-{
-	struct thread *t = thread_current();
-	for(int i=0; i<8; i++){
-    	if (t->wait_lock == NULL) break;
-		struct thread *h = (t->wait_lock)->holder;
-		h->priority = t->priority;
-		t = h;
-	}
-}
-/* project 1-2 */
-void update_priority(void)
-{
-	struct thread *t = thread_current();
-	t->priority = t->init_priority;
-	int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
-	t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
 }
 
 /* Sets the current thread's nice value to NICE. */
