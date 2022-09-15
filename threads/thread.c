@@ -321,7 +321,7 @@ thread_unblock (struct thread *t) {
 	ASSERT (t->status == THREAD_BLOCKED);
 
 	/* project 1-2 */
-	list_insert_ordered (&ready_list, &t->elem, compare_priority, 0);
+	list_insert_ordered (&ready_list, &t->elem, compare_priority, NULL);
 
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
@@ -392,7 +392,7 @@ thread_yield (void) {
 		/* list_push_back (&ready_list, &curr->elem); */
 		
 		/* Project1-2 */
-		list_insert_ordered (&ready_list, &curr->elem, compare_priority, 0);
+		list_insert_ordered (&ready_list, &curr->elem, compare_priority, NULL);
 
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
@@ -421,7 +421,7 @@ thread_get_priority (void) {
 void max_priority (void)
 {
 	if (!list_empty (&ready_list))
-		if (compare_priority (list_begin(&ready_list), &(thread_current()->elem), 0))
+		if (compare_priority (list_begin(&ready_list), &(thread_current()->elem), NULL))
 			thread_yield ();
 }
 
