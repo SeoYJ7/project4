@@ -441,10 +441,13 @@ update_priority 함수 사용하여 우선 순위 변경으로 인한 donation �
 */
 void
 thread_set_priority (int new_priority) {
+	/* project 1-3 */
+	if (thread_mlfqs)
+		return;
 	/* project 1-2 */
 	thread_current ()->init_priority = new_priority;
 	update_priority();
-	// donate_priority();
+	
 	max_priority();
 }
 
