@@ -17,7 +17,7 @@ void sema_up (struct semaphore *);
 void sema_self_test (void);
 
 /* Project1-2 */
-bool compare_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool compare_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
 /* Lock. */
 struct lock {
