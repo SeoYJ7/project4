@@ -189,6 +189,11 @@ lock_init (struct lock *lock) {
 	sema_init (&lock->semaphore, 1);
 }
 
+/* project 1-2 */
+void donate_priority(void){
+
+}
+
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -197,14 +202,36 @@ lock_init (struct lock *lock) {
    interrupt handler.  This function may be called with
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
+/* project 1-2 */
+/*
+lock을 요구하는 함수이다.
+case 1) 해당 Lock의 주인(holder)가 존재 
+	(1) curr thread의  wait_on_lock 변수에 획득을 기다리는 Lock의 주소(인수로 넘긴 lock인 듯) 저장
+	(2) multiple donation을 고려하기 위해 이전 상태의 우선순위 기억 (더 높은 놈한테 donate 받기 전의 priority를 기억) 및 donation 받은 thread의 struct를 list로 관리 → donations에 list로 관리하라는 의미인 듯
+	(3) priority donation을 수행하기 위해 donate_priority() 호출
+case 2) lock holde가 없다면
+	기존 코드 유지 : sema_down 및 lock holder을 curr thread로
+	추가 : curr thread의 wait_on_lock pointer을 NULL로 바꾸기
+*/
 void
 lock_acquire (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
-	sema_down (&lock->semaphore);
-	lock->holder = thread_current ();
+	/* project 1-2 */
+	struct thread *curr = thread_current();
+	if (lock->holder != NULL) {
+		curr->wait_lock = lock;
+		curr->init_priority = curr->priority;
+		donate_priority();
+	}
+	else {
+		sema_down (&lock->semaphore); //기존 코드
+		lock->holder = thread_current (); //기존 코드
+		thread_current()->wait_lock = NULL;
+	}
+	
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
