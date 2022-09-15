@@ -403,8 +403,10 @@ void update_priority(void)
 {
 	struct thread *t = thread_current();
 	t->priority = t->init_priority;
-	int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
-	t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
+	if (!list_empty (&t->donations)) {
+		int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
+		t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
+	}
 }
 
 /* project 1-2 */
