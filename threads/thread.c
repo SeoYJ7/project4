@@ -305,6 +305,12 @@ thread_block (void) {
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
    update other data. */
+
+/* project 2-1 */
+/* 
+thread가 unblock될 때 priority 순으로 정렬되어 ready_list에 삽입되도록 코드를 수정한다.
+*/
+
 void
 thread_unblock (struct thread *t) {
 	enum intr_level old_level;
@@ -313,7 +319,27 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+
+	/* project 2-1 start */
+	struct thread *head = list_entry(list_begin(&ready_list), struct thread, elem);
+	struct thread *tail = list_entry(list_end(&ready_list), struct thread, elem);
+	// (1) 만약 ready_list의 head보다도 priority가 높다면 list_insert 쓰지 않고 list_push_front로 넣는다.
+	if (t->priority > head->priority)
+		list_push_front(&ready_list, &t->elem);
+	// (2) 만약 ready_list의 tail보다도 priority가 작다면 list_push_back
+	else if (t->priority < tail->priority)
+		list_push_back(&ready_list, &t->elem);
+	// (3) ready_list의 begin부터 iterate하면서 t의 priority가 더 큰 순간 그 thread 앞에 list_insert 함수 사용하여 추가
+	else {
+		struct thread *temp = head;
+		while (&temp->elem != list_tail(&ready_list)) {
+			if (t->priority > temp->priority)
+				list_insert(&temp->elem, &t->elem);
+			temp = list_entry(temp->elem.next, struct thread, elem);
+		}
+	}
+	/* project 2-1 end */
+
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
