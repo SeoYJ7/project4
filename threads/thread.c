@@ -429,7 +429,7 @@ void max_priority (void)
 /*
 priority가 a > b이면 1 return, a < b이면 0 return. list_insert_ordered에서 사용할 수 있도록 정렬 방법을 결정하기 위한 함수 작성
 */
-bool compare_priority(const struct list_elem *a, const struct list_elem *b){
+bool compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
 	struct thread *a_thread = list_entry(a, struct thread, elem);
 	struct thread *b_thread = list_entry(b, struct thread, elem);
 
