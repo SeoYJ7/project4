@@ -219,15 +219,12 @@ lock_acquire (struct lock *lock) {
 	struct thread *curr = thread_current();
 	if (lock->holder != NULL) {
 		curr->wait_lock = lock;
-		curr->init_priority = curr->priority;
+		list_push_back(&lock->holder->donations, &curr->donation_elem);
 		donate_priority();
 	}
-	else {
-		thread_current()->wait_lock = NULL;
-		sema_down (&lock->semaphore); //기존 코드
-		lock->holder = thread_current (); //기존 코드
-	}
-	
+	sema_down (&lock->semaphore); //기존 코드
+	lock->holder = thread_current (); //기존 코드
+	thread_current()->wait_lock = NULL;
 }
 
 /* project 1-2 */
@@ -239,12 +236,13 @@ void remove_donate_of_lock(struct lock *lock) {
 	struct thread *curr = thread_current();
 	struct thread *temp_thread;
 
-	struct list_elem *temp = list_head(&curr->donations);
-	while (temp != list_tail(&curr->donations)) {
+	struct list_elem *temp = list_begin(&curr->donations);
+	while (temp != list_end(&curr->donations)) {
 		temp_thread = list_entry(temp, struct thread, donation_elem);
 		if (temp_thread->wait_lock == lock)
-			list_remove(temp);
-		temp = list_next(temp);
+			temp =list_remove(temp);
+		else 
+			temp = list_next(temp);
 	}
 
 }
