@@ -95,11 +95,15 @@ struct thread {
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 
-	/* project1-2 */
+	/* project 1-2 */
 	int init_priority;
 	struct list donations;
 	struct list_elem donation_elem;
 	struct lock *wait_lock;
+
+	/* project 1-3 */
+	int nice;
+	int recent_cpu;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
