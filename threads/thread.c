@@ -489,18 +489,16 @@ void advanced_recent_cpu (struct thread *t)
 	}
 }
 /* project1-3 */
-void advanced_load_avg (struct thread *t)
+void advanced_load_avg (void)
 {
-	if (t != idle_thread) {
-		// load_avg = (59/60) * load_avg + (1/60) * ready_threads
-		int ready_threads = (t != idle_thread) ? (list_size(&ready_list) + 1) : (list_size(&ready_list));
-		t->load_avg = fp_add_fp (fp_mul_fp (fp_div_fp (int_to_fp (59), int_to_fp (60)), t->load_avg), fp_mul_int (fp_div_fp (int_to_fp (1), int_to_fp (60)), ready_threads));
-	}
+	// load_avg = (59/60) * load_avg + (1/60) * ready_threads
+	int ready_threads = (t != idle_thread) ? (list_size(&ready_list) + 1) : (list_size(&ready_list));
+	load_avg = fp_add_fp (fp_mul_fp (fp_div_fp (int_to_fp (59), int_to_fp (60)), load_avg), fp_mul_int (fp_div_fp (int_to_fp (1), int_to_fp (60)), ready_threads));
 }
 /* project1-3 */
-void advanced_increment (void)
+void advanced_inc (void)
 {
-	if (t != idle_thread) 
+	if (thread_current() != idle_thread) 
 		thread_current()->recent_cpu = add_fp_int (thread_current()->recent_cpu, 1);
 }
 /* project1-3 */
