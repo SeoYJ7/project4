@@ -91,9 +91,19 @@ struct thread {
 	enum thread_status status;          /* Thread state. */
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
-
+	int wakeup_tick;					/* project1-1 */
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
+
+	/* project 1-2 */
+	int init_priority;
+	struct list donations;
+	struct list_elem donation_elem;
+	struct lock *wait_lock;
+
+	/* project 1-3 */
+	int nice;
+	int recent_cpu;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -136,11 +146,32 @@ void thread_yield (void);
 int thread_get_priority (void);
 void thread_set_priority (int);
 
+/* Project1-2 */
+void max_priority (void); 
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+/* Project1-2 */
+void donate_priority(void);
+void remove_donate_of_lock(struct lock *lock);
+void update_priority(void);
+
 int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
+
+/* Project1-1 */
+void thread_sleep(int64_t ticks);
+void thread_awake(int64_t ticks);
+void set_next_tick(int64_t ticks);
+int64_t get_next_tick(void);
+
+/* Project1-3 */
+void advanced_priority (struct thread *t);
+void advanced_recent_cpu (struct thread *t);
+void advanced_load_avg (void);
+void advanced_inc (void);
+void advanced_recal (void);
 
 #endif /* threads/thread.h */

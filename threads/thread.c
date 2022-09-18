@@ -11,6 +11,8 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+/* project 1-3 */
+#include "threads/arithmetic.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -24,9 +26,18 @@
    Do not modify this value. */
 #define THREAD_BASIC 0xd42df210
 
+/* project1-3 */
+
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
+
+/* Project1-1 */
+static struct list sleep_list;
+int64_t next_tick = INT64_MAX;
+
+/* project 1-3 */
+int load_avg;
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -108,6 +119,7 @@ thread_init (void) {
 	/* Init the globla thread context */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
+	list_init (&sleep_list); /* Project1-1 */
 	list_init (&destruction_req);
 
 	/* Set up a thread structure for the running thread. */
@@ -125,12 +137,65 @@ thread_start (void) {
 	struct semaphore idle_started;
 	sema_init (&idle_started, 0);
 	thread_create ("idle", PRI_MIN, idle, &idle_started);
+	/* project 1-3 */
+	load_avg = 0;
 
 	/* Start preemptive thread scheduling. */
 	intr_enable ();
 
 	/* Wait for the idle thread to initialize idle_thread. */
 	sema_down (&idle_started);
+}
+
+/* Project 1-1 */
+/* change running thread to sleep state */
+/* 
+현재의 thread가 idle이 아니면 status를 THREAD_BLOCKED로 바꾸고 깨어나야 할 ticks를 저장
+sleep_list에 추가하고 awake 함수가 실행되어야 할 tick 값을 update
+ */
+void thread_sleep(int64_t ticks) {
+	
+	struct thread *curr = thread_current ();
+	
+	enum intr_level old_level;
+
+	ASSERT (!intr_context ());
+	
+	old_level = intr_disable ();
+	curr->wakeup_tick = ticks;
+	if (curr != idle_thread) {
+		list_push_back (&sleep_list, &curr->elem);
+	}
+	set_next_tick(ticks);
+	do_schedule (THREAD_BLOCKED);
+	intr_set_level (old_level);
+}
+
+/* awake thread from wait queue */
+/* 
+wait list에 있는 thread를 둘러보면서 wakeup_tick 변수가 ticks보다 작거나 같으면 wake 시킨다.
+이 때 wake 시킨다는 것은 ready list에 thread를 옮기고 status를 THREAD_READY로 바꾸는 것을 의미.
+thread의 wakeup_tick이 ticks보다 작거나 같은 thread를 깨운다 (READY 상태로 즉, status는 THREAD_READY, ready_list에 추가)
+현재 sleep thread의 wakeup_tick 중에서 가장 작은 값을 next_
+ */
+void thread_awake(int64_t ticks) {
+	struct thread *temp_thread;
+	struct list_elem *temp_elem = list_begin(&sleep_list);
+	
+	/* struct list_elem *temp_elem = &(sleep_list.head); */
+	while (temp_elem != list_tail(&sleep_list)) {
+		temp_thread = list_entry(temp_elem, struct thread, elem);
+		if (temp_thread->wakeup_tick <= ticks) {
+			temp_elem = list_remove(&temp_thread->elem);
+			thread_unblock(temp_thread);
+		}
+		else {
+			set_next_tick(temp_thread->wakeup_tick);
+			temp_elem = list_next(temp_elem);
+		}
+		
+		/*temp_elem = temp_elem -> next;*/
+	}
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -152,6 +217,20 @@ thread_tick (void) {
 	/* Enforce preemption. */
 	if (++thread_ticks >= TIME_SLICE)
 		intr_yield_on_return ();
+}
+
+/* Project1-1 */
+void 
+set_next_tick(int64_t ticks)
+{
+	next_tick = (((next_tick) < (ticks)) ? (next_tick) : (ticks));
+}
+
+/* Project1-1 */
+int64_t 
+get_next_tick(void)
+{
+	return next_tick;
 }
 
 /* Prints thread statistics. */
@@ -207,6 +286,9 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
+	/* Project1-2 */
+	max_priority ();
+	
 	return tid;
 }
 
@@ -232,6 +314,12 @@ thread_block (void) {
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
    update other data. */
+
+/* project 1-2 */
+/* 
+thread가 unblock될 때 priority 순으로 정렬되어 ready_list에 삽입되도록 코드를 수정한다.
+*/
+
 void
 thread_unblock (struct thread *t) {
 	enum intr_level old_level;
@@ -240,7 +328,10 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+
+	/* project 1-2 */
+	list_insert_ordered (&ready_list, &t->elem, compare_priority, NULL);
+
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -294,6 +385,10 @@ thread_exit (void) {
 
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
+/* project 1-2 */
+/*
+현재 running thread가 cpu를 양보하여 ready_list에 삽입될 때 우선순위 순서로 정렬되어 ready_list에 들어가도록 코드 수정
+*/
 void
 thread_yield (void) {
 	struct thread *curr = thread_current ();
@@ -303,15 +398,58 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+		/* list_push_back (&ready_list, &curr->elem); */
+		
+		/* Project1-2 */
+		list_insert_ordered (&ready_list, &curr->elem, compare_priority, NULL);
+
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
 
+/* project 1-2 */
+void update_priority(void)
+{
+	struct thread *t = thread_current();
+	t->priority = t->init_priority;
+	if (!list_empty(&t->donations)) {
+		list_sort(&t->donations, compare_priority, NULL);
+		int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
+		t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
+	}
+}
+
+/* project 1-2 */
+void donate_priority(void)
+{
+	struct thread *t = thread_current();
+	for(int i=0; i<8; i++){
+    	if (t->wait_lock == NULL) break;
+		struct thread *h = (t->wait_lock)->holder;
+		h->priority = t->priority;
+		t = h;
+	}
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
+/* project 1-2 */
+/*
+thread의 우선순위가 변경되었을 때 우선순위에 따라 선점(yield)이 발생하도록 한다.
+이 함수가 현재 thread의 우선순위를 변경시키는 것이므로 현재 thread보다 ready_list의 max priority가 더 높은 경우 yield 시키도록 코드 수정
+
+update_priority 함수 사용하여 우선 순위 변경으로 인한 donation 정보 갱신 (curr thread의 Priority가 변했는데 이 변경된 priority를 기존 priority로 봤을 때 curr thread가 donate을 받아야 하는지 결정)
+→ donate_priority(), max_pariority() 함수를 적절히 사용하여 Priority donation을 수행하고 scheduling
+*/
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+	/* project 1-3 */
+	if (thread_mlfqs)
+		return;
+	/* project 1-2 */
+	thread_current ()->init_priority = new_priority;
+	update_priority();
+	
+	max_priority();
 }
 
 /* Returns the current thread's priority. */
@@ -320,31 +458,102 @@ thread_get_priority (void) {
 	return thread_current ()->priority;
 }
 
+/* project1-2 */
+void max_priority (void)
+{
+	if (!list_empty (&ready_list))
+		if (compare_priority (list_begin(&ready_list), &(thread_current()->elem), NULL))
+			thread_yield ();
+}
+
+/* project 1-2 */
+/*
+priority가 a > b이면 1 return, a < b이면 0 return. list_insert_ordered에서 사용할 수 있도록 정렬 방법을 결정하기 위한 함수 작성
+*/
+bool compare_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
+	struct thread *a_thread = list_entry(a, struct thread, elem);
+	struct thread *b_thread = list_entry(b, struct thread, elem);
+
+	return (a_thread->priority > b_thread->priority ? true : false);
+}
+
+/* project1-3 */
+void advanced_priority (struct thread *t)
+{	
+	if (t != idle_thread) {
+		// PRI_MAX – (recent_cpu / 4) – (nice * 2)
+		t->priority = fp_to_int_floor (fp_sub_int (fp_add_int (fp_div_int (t->recent_cpu, -4), PRI_MAX), t->nice * 2));
+	}
+}
+/* project1-3 */
+void advanced_recent_cpu (struct thread *t)
+{
+	if (t != idle_thread) {
+		// recent_cpu = (2 * load_avg) / (2 * load_avg + 1) * recent_cpu + nice
+		t->recent_cpu = fp_add_int (fp_mul_fp (fp_div_fp (fp_mul_int (load_avg, 2), fp_add_int (fp_mul_int (load_avg, 2), 1)), t->recent_cpu), t->nice);
+	}
+}
+/* project1-3 */
+void advanced_load_avg (void)
+{
+	// load_avg = (59/60) * load_avg + (1/60) * ready_threads
+	int ready_threads = (thread_current() != idle_thread) ? (list_size(&ready_list) + 1) : (list_size(&ready_list));
+	load_avg = fp_add_fp (fp_mul_fp (fp_div_fp (int_to_fp (59), int_to_fp (60)), load_avg), fp_mul_int (fp_div_fp (int_to_fp (1), int_to_fp (60)), ready_threads));
+}
+/* project1-3 */
+void advanced_inc (void)
+{
+	if (thread_current() != idle_thread) 
+		thread_current()->recent_cpu = fp_add_int (thread_current()->recent_cpu, 1);
+}
+/* project1-3 */
+void advanced_recal (void)
+{	
+	advanced_recent_cpu(thread_current());
+	advanced_priority(thread_current());
+	for (struct list_elem *e = list_begin(&ready_list); e != list_tail(&ready_list); e = list_next(e)){
+		advanced_recent_cpu(list_entry (e, struct thread, elem));
+		advanced_priority(list_entry (e, struct thread, elem));
+	}
+	for (struct list_elem *e = list_begin(&sleep_list); e != list_tail(&sleep_list); e = list_next(e)){
+		advanced_recent_cpu(list_entry (e, struct thread, elem));
+		advanced_priority(list_entry (e, struct thread, elem));
+	}
+}
+
+
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) {
 	/* TODO: Your implementation goes here */
+	/* project 1-3 */
+	thread_current()->nice = nice;
+	advanced_priority(thread_current());
+	max_priority();
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) {
 	/* TODO: Your implementation goes here */
-	return 0;
+	/* project 1-3 */
+	return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) {
 	/* TODO: Your implementation goes here */
-	return 0;
+	/* project 1-3 */
+	return fp_to_int_round(fp_mul_int(load_avg, 100));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) {
 	/* TODO: Your implementation goes here */
-	return 0;
+	/* project 1-3 */
+	return fp_to_int_round(fp_mul_int(thread_current()->recent_cpu, 100));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -409,6 +618,15 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+
+	/* project1-2 */
+	t->init_priority = priority;
+	list_init(&t->donations);
+	t->wait_lock = NULL;
+	/* project 1-3 */
+	t->nice = 0;
+	t->recent_cpu = 0;
+	
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
