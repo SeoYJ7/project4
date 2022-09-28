@@ -69,7 +69,7 @@ sema_down (struct semaphore *sema) {
 		// list_push_back (&sema->waiters, &thread_current ()->elem);
 
 		/* Project1-2 */
-		list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, NULL);
+		list_insert_ordered (&sema->waiters, &thread_current ()->elem, compare_priority, 0);
 
 		thread_block ();
 	}
@@ -115,7 +115,7 @@ sema_up (struct semaphore *sema) {
 	old_level = intr_disable ();
 	if (!list_empty (&sema->waiters)) {
 		/* project1-2 */
-		list_sort(&sema->waiters, compare_priority, NULL);
+		list_sort(&sema->waiters, compare_priority, 0);
 
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
 					struct thread, elem));
@@ -361,7 +361,7 @@ cond_wait (struct condition *cond, struct lock *lock) {
 	// list_push_back (&cond->waiters, &waiter.elem);
 
 	/* Project1-2 */
-	list_insert_ordered (&cond->waiters, &waiter.elem, compare_sem_priority, NULL);
+	list_insert_ordered (&cond->waiters, &waiter.elem, compare_sem_priority, 1);
 	
 	lock_release (lock);
 	sema_down (&waiter.semaphore);
@@ -385,7 +385,7 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED) {
 	if (!list_empty (&cond->waiters)) {
 
 		/* project1-2 */
-		list_sort(&cond->waiters, compare_sem_priority, NULL);
+		list_sort(&cond->waiters, compare_sem_priority, 1);
 
 		sema_up (&list_entry (list_pop_front (&cond->waiters),
 					struct semaphore_elem, elem)->semaphore);
