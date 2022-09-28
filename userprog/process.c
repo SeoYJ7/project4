@@ -177,12 +177,28 @@ process_exec (void *f_name) {
 	process_cleanup ();
 
 	/* And then load the binary */
-	success = load (file_name, &_if);
+	
+	/* project 2-1) Passing Argument */
+	/* CAUTION ) file_name copy하지 않고 그대로 사용해도 되는지 문제 생기면 나중에 확인할 것 */
+	char *save_ptr, *token;
+	int count=0;
+	char **argv;
+	for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;token = strtok_r (NULL, " ", &save_ptr)) {
+		argv[count] = token;
+		count++;
+	}
+	success = load (argv[0], &_if);
+	/* project 2-1) Passing Argument */
 
 	/* If load failed, quit. */
 	palloc_free_page (file_name);
 	if (!success)
 		return -1;
+	
+	/* project 2-1) Passing Argument */
+	/* load에 성공했다면 user stack에 인자 정보 저장 */
+	args_to_stack(argv, count, &_if);
+	/* project 2-1) Passing Argument */
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -204,6 +220,11 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+
+	/* project 2-1) process wait 구현 전 */
+	while (true) {}
+	/* project 2-1) process wait 구현 전 */
+
 	return -1;
 }
 
