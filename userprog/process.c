@@ -49,11 +49,22 @@ process_create_initd (const char *file_name) {
 	if (fn_copy == NULL)
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
+	
+	/* project 2-1 */
+	char *real_file_name;
+	char *saveptr;
+	real_file_name = malloc(strlen(file_name) + 1);
+  	strlcpy (real_file_name, file_name, strlen(file_name) + 1);
+  	real_file_name = strtok_r (real_file_name, " ", &saveptr);
 
 	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	tid = thread_create (real_file_name, PRI_DEFAULT, initd, fn_copy); // project 2-1
+
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
+	
+	free(real_file_name); // project 2-1
+
 	return tid;
 }
 
@@ -637,3 +648,15 @@ setup_stack (struct intr_frame *if_) {
 	return success;
 }
 #endif /* VM */
+
+/* project 2-1 */
+void 
+args_to_stack(char **parse, int count, struct intr_frame *if_)
+{	
+	void **esp = &_if->rsp;
+	// strings
+	// addresses
+	// argv
+	// argc
+	// fake address
+}

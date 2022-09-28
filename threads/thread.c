@@ -521,7 +521,6 @@ void advanced_recal (void)
 	}
 }
 
-
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) {
