@@ -410,6 +410,8 @@ thread_yield (void) {
 /* project 1-2 */
 void update_priority(void)
 {
+	enum intr_level old_level;
+	old_level = intr_disable ();
 	struct thread *t = thread_current();
 	t->priority = t->init_priority;
 	if (!list_empty(&t->donations)) {
@@ -417,6 +419,7 @@ void update_priority(void)
 		int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
 		t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
 	}
+	intr_set_level (old_level);
 }
 
 /* project 1-2 */
@@ -446,10 +449,14 @@ thread_set_priority (int new_priority) {
 	if (thread_mlfqs)
 		return;
 	/* project 1-2 */
+	enum intr_level old_level;
+	old_level = intr_disable ();
 	thread_current ()->init_priority = new_priority;
+
 	update_priority();
-	
 	max_priority();
+
+	intr_set_level (old_level);
 }
 
 /* Returns the current thread's priority. */
@@ -461,10 +468,12 @@ thread_get_priority (void) {
 /* project1-2 */
 void max_priority (void)
 {
-	if (!list_empty (&ready_list))
-		if (compare_priority (list_begin(&ready_list), &(thread_current()->elem), NULL))
+	if (!list_empty (&ready_list) & !intr_context()){
+		if (compare_priority (list_begin(&ready_list), &(thread_current() -> elem), NULL))
 			thread_yield ();
+	}
 }
+
 
 /* project 1-2 */
 /*
@@ -474,7 +483,7 @@ bool compare_priority(const struct list_elem *a, const struct list_elem *b, void
 	struct thread *a_thread = list_entry(a, struct thread, elem);
 	struct thread *b_thread = list_entry(b, struct thread, elem);
 
-	return (a_thread->priority > b_thread->priority ? true : false);
+	return (a_thread->priority > b_thread->priority);
 }
 
 /* project1-3 */
