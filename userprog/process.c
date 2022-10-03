@@ -51,19 +51,19 @@ process_create_initd (const char *file_name) {
 	strlcpy (fn_copy, file_name, PGSIZE);
 	
 	/* project 2-1 */
-	char *real_file_name;
-	char *saveptr;
-	real_file_name = malloc(strlen(file_name) + 1);
-  	strlcpy (real_file_name, file_name, strlen(file_name) + 1);
-  	real_file_name = strtok_r (real_file_name, " ", &saveptr);
+	// char *real_file_name;
+	// char *saveptr;
+	// real_file_name = malloc(strlen(file_name) + 1);
+  	// strlcpy (real_file_name, file_name, strlen(file_name) + 1);
+  	// real_file_name = strtok_r (real_file_name, " ", &saveptr);
 
 	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (real_file_name, PRI_DEFAULT, initd, fn_copy); // project 2-1
+	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy); // project 2-1
 
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	
-	free(real_file_name); // project 2-1
+	// free(real_file_name); // project 2-1
 
 	return tid;
 }
@@ -209,6 +209,7 @@ process_exec (void *f_name) {
 	/* project 2-1) Passing Argument */
 	/* load에 성공했다면 user stack에 인자 정보 저장 */
 	args_to_stack(argv, count, &_if);
+	
 	/* project 2-1) Passing Argument */
 
 	/* Start switched process. */
@@ -672,12 +673,38 @@ setup_stack (struct intr_frame *if_) {
 
 /* project 2-1 */
 void 
-args_to_stack(char **parse, int count, struct intr_frame *if_)
+args_to_stack(char **argv, int count, struct intr_frame *_if)
 {	
+	int str_len;
 	void **esp = &_if->rsp;
+	void **address_list;
 	// strings
+	for (int i=count-1; i>-1; i--) {
+		str_len = strlen(argv[i]) + 1;
+		*esp -= str_len;
+		memcpy(*esp, argv[i], str_len);
+		address_list[i] = *esp;
+	}
 	// addresses
+	for (int i=count-1; i>-1; i--) {
+		*esp -= sizeof(char *);
+		memcpy(*esp, address_list[i], sizeof(char *));
+	}
+	// alignment
+	int not_align = (uint64_t) *esp % 8;
+	if (not_align) {
+		*esp -= (8-not_align);
+	}
+	**(uint64_t **) esp = 0;
+
 	// argv
+	*esp -= sizeof(char **);
+	int argv_addr = *esp;
+	memcpy(*esp, argv_addr , sizeof(char **));
 	// argc
+	*esp -= sizeof(int);
+	**(uint64_t **) esp = count;
 	// fake address
+	*esp -= sizeof(void *);
+	**(uint64_t **) esp = 0;
 }
