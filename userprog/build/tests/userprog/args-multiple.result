@@ -1,13 +1,10 @@
 FAIL
-Kernel panic in run: PANIC at ../../userprog/exception.c:97 in kill(): Kernel bug - unexpected interrupt in kernel
-Call stack: 0x8004218467 0x800421cca9 0x800421ce28 0x80042093d3 0x80042097f1 0x800421c7ef 0x800421bdfb 0x800423e00e 0xcccccccccccccccc
+Kernel panic in run: PANIC at ../../lib/string.c:305 in strlcpy(): assertion `dst != NULL' failed.
+Call stack: 0x8004218467 0x8004217dfa 0x800421c8d0 0x800421bdf3 0x800421ba9f 0x8004207dfb
 Translation of call stack:
 0x0000008004218467: debug_panic (lib/kernel/debug.c:32)
-0x000000800421cca9: kill (userprog/exception.c:103)
-0x000000800421ce28: page_fault (userprog/exception.c:159 (discriminator 12))
-0x00000080042093d3: intr_handler (threads/interrupt.c:352)
-0x00000080042097f1: intr_entry (threads/intr-stubs.o:?)
-0x000000800421c7ef: args_to_stack (userprog/process.c:686 (discriminator 3))
-0x000000800421bdfb: process_exec (userprog/process.c:216)
-0x000000800423e00e: (unknown)
-0xcccccccccccccccc: (unknown)
+0x0000008004217dfa: strlcpy (lib/string.c:306)
+0x000000800421c8d0: args_to_stack (userprog/process.c:709 (discriminator 3))
+0x000000800421bdf3: process_exec (userprog/process.c:213)
+0x000000800421ba9f: initd (userprog/process.c:80)
+0x0000008004207dfb: kernel_thread (threads/thread.c:611)

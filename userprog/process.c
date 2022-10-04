@@ -183,40 +183,67 @@ process_exec (void *f_name) {
 	_if.ds = _if.es = _if.ss = SEL_UDSEG;
 	_if.cs = SEL_UCSEG;
 	_if.eflags = FLAG_IF | FLAG_MBS;
-
 	/* We first kill the current context */
 	process_cleanup ();
 
 	/* And then load the binary */
 	
 	/* project 2-1) Passing Argument */
-	/* CAUTION ) file_name copy하지 않고 그대로 사용해도 되는지 문제 생기면 나중에 확인할 것 */
-	char *save_ptr, *token;
-	int count=0;
-	char **argv;
-	for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;token = strtok_r (NULL, " ", &save_ptr)) {
-		argv[count] = token;
-		count++;
+	/* argument size는 page로 limit 시켜도 괜찮다고 한다. -> palloc_get_page() 함수 사용 */
+	char **argv = (char **) palloc_get_page(0);
+	file_name = (char *) palloc_get_page(0);
+	char **address_list = (char **) palloc_get_page(0);
+
+	strlcpy(file_name, f_name, strlen(f_name)+1);
+
+	int count = args_parsing(file_name, argv);
+	
+	success = load(file_name, &_if);
+
+	// 성공이면 즉시 args_to_stack을 하고 success든 아니든 palloc_free_page는 실행되도록 한다. 
+	if (success){
+		args_to_stack(argv, count, &_if, address_list);
 	}
-	success = load (argv[0], &_if);
+		
+
+	
 	/* project 2-1) Passing Argument */
 
 	/* If load failed, quit. */
 	palloc_free_page (file_name);
+	// palloc_free_page(argv);
+	// palloc_free_page(address_list);
+	
 	if (!success)
 		return -1;
-	
-	/* project 2-1) Passing Argument */
-	/* load에 성공했다면 user stack에 인자 정보 저장 */
-	args_to_stack(argv, count, &_if);
-	
-	/* project 2-1) Passing Argument */
 
 	/* Start switched process. */
 	do_iret (&_if);
 	NOT_REACHED ();
 }
 
+/* project 2-1) passing argument */
+/* command line을 parsing하고 argument 개수도 count하며 Load 시킬 Name도 load_name에 담아주는 함수이다. */
+int
+args_parsing (char *file_name, char **argv)
+{
+    char *token, *save_ptr;
+	int count;
+
+    token = strtok_r (file_name, " ", &save_ptr);
+	while (token != NULL){
+		argv[count] = token;
+        count++;
+		token = strtok_r (NULL, " ", &save_ptr);
+	}
+    // for (count = 0; token != NULL; token = strtok_r (NULL, " ", &save_ptr))
+    // {
+    //     argv[count] = token;
+    //     count++;
+    // }
+
+    return count;
+}
 
 /* Waits for thread TID to die and returns its exit status.  If
  * it was terminated by the kernel (i.e. killed due to an
@@ -673,38 +700,46 @@ setup_stack (struct intr_frame *if_) {
 
 /* project 2-1 */
 void 
-args_to_stack(char **argv, int count, struct intr_frame *_if)
+args_to_stack(char **argv, int count, struct intr_frame *_if, char **address_list)
 {	
 	int str_len;
-	void **esp = &_if->rsp;
-	void **address_list;
-	// strings
-	for (int i=count-1; i>-1; i--) {
+	void **sp = &_if->rsp;
+	
+	// strings : 뒤의 argument부터 copy해야 한다.
+	for (int i=count-1; i>=0; i--) {
 		str_len = strlen(argv[i]) + 1;
-		*esp -= str_len;
-		memcpy(*esp, argv[i], str_len);
-		address_list[i] = *esp;
+		*sp -= str_len;
+		memcpy(*sp, argv[i], str_len);
+		address_list[count-i-1], *sp, 8;
 	}
-	// addresses
-	for (int i=count-1; i>-1; i--) {
-		*esp -= sizeof(char *);
-		memcpy(*esp, address_list[i], sizeof(char *));
-	}
-	// alignment
-	int not_align = (uint64_t) *esp % 8;
+	
+	
+	// word alignment
+	int not_align = ((uint64_t) *sp) % 8;
 	if (not_align) {
-		*esp -= (8-not_align);
+		*sp -= (8-not_align);
 	}
-	**(uint64_t **) esp = 0;
-
+	**(uint64_t **) sp = 0;
+	
+	// null pointer
+	*sp -= 8;
+	**(uint64_t **) sp = 0;
+	
+	// addresses
+	for (int i=0; i>=count-1; i--) {
+		*sp -= 8;
+		memcpy(*sp, &address_list[i], 8);
+	}
+	
+	
 	// argv
-	*esp -= sizeof(char **);
-	int argv_addr = *esp;
-	memcpy(*esp, argv_addr , sizeof(char **));
+	_if->R.rsi =  *sp;
+	
 	// argc
-	*esp -= sizeof(int);
-	**(uint64_t **) esp = count;
+	_if->R.rdi = count;
+	
+	
 	// fake address
-	*esp -= sizeof(void *);
-	**(uint64_t **) esp = 0;
+	*sp -= 8;
+	**(uint64_t **) sp = 0;
 }
