@@ -137,13 +137,13 @@ int
 open (const char *file)
 {
 	check_addr (file);
-	lock_acquire (&file_lock);
+	//lock_acquire (&file_lock);
 
 	struct file *f = filesys_open(file);
 
 	if(f == NULL)
 	{
-		lock_release(&file_lock);
+		//lock_release(&file_lock);
 		return -1;
 	}
 
@@ -167,7 +167,7 @@ open (const char *file)
 	list_push_back (curr_fds, &new_file->file_elem);
 
 	int fd = new_file->file_descriptor;
-	lock_release (&file_lock);
+	//lock_release (&file_lock);
 	return fd;
 }
 
@@ -185,20 +185,65 @@ struct fd_table_entry *get_fd_table_entry (int fd, struct list *fd_list)
 int
 filesize (int fd)
 {
-	lock_acquire(&file_lock);
+	//lock_acquire(&file_lock);
+
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
-	
+
 	if (fdte == NULL){
-		lock_release (&file_lock);
+		//lock_release (&file_lock);
         return -1;
 	}
-	int f_length = file_length (fdte->file_addr);
-	lock_release (&file_lock);
-	return f_length;
+
+	int length = file_length (fdte->file_addr);
+	//lock_release (&file_lock);
+	return length;
 }
 
 int 
 read (int fd, void *buffer, unsigned size)
 {
+	check_addr (buffer);
+	//lock_acquire (&file_lock);
 
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+	
+	if (fdte == NULL){
+		//lock_release (&file_lock);
+        return -1;
+	}
+
+	if (fd == 0)
+	{
+		// lock_release (&lock_filesys);
+		return (int) input_getc();
+	}
+
+	int bytes = file_read (fdte->file_addr, buffer, size);
+	//lock_release (&file_lock);
+	return bytes;
+}
+
+int 
+write (int fd, const void *buffer, unsigned size)
+{
+	check_addr (buffer);
+	//lock_acquire (&file_lock);
+
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+	
+	if (fdte == NULL){
+		//lock_release (&file_lock);
+        return -1;
+	}
+	
+	if (fd == 1)
+	{
+		putbuf (buffer, size);
+    	//lock_release(&lock_filesys);
+    	return size;
+	}
+
+	int bytes = file_write (fdte->file_addr, buffer, size);
+	//lock_release (&file_lock);
+	return bytes;
 }
