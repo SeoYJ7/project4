@@ -82,18 +82,45 @@ initd (void *f_name) {
 	NOT_REACHED ();
 }
 
+
+/* project 2-3 Syscall process_fork helper method */
+struct thread *find_child(tid_t pid){
+	struct list *child_list = &thread_current() -> child_list;
+	for (struct list_elem *child_elem = list_begin(child_list); child_elem != list_end(child_list); child_elem = list_next(child_elem)){
+		struct thread *child_thread = list_entry(child_elem, struct thread, child_elem);
+
+		if (child_thread -> tid == pid)
+			return child_thread;
+	}
+	return NULL;
+}
+
+
 /* Clones the current process as `name`. Returns the new process's thread id, or
  * TID_ERROR if the thread cannot be created. */
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	/* Clone current thread to new thread.*/
-	return thread_create (name,
-			PRI_DEFAULT, __do_fork, thread_current ());
+	struct thread *curr = thread_current();
+	curr -> if_ = if_;
+
+	tid_t pid = thread_create (name,PRI_DEFAULT, __do_fork, curr);
+
+	if (pid == TID_ERROR) {
+		return TID_ERROR;
+	}
+
+	struct thread *child = find_child(pid);
+	sema_down(&child->fork);
+	return pid;
 }
+
+
 
 #ifndef VM
 /* Duplicate the parent's address space by passing this function to the
  * pml4_for_each. This is only for the project 2. */
+ /* project 2-3 Syscall fork (__do_fork) */
 static bool
 duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	struct thread *current = thread_current ();
@@ -103,21 +130,27 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	bool writable;
 
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
-
+	if (is_kernel_vaddr(va)) return false;
 	/* 2. Resolve VA from the parent's page map level 4. */
 	parent_page = pml4_get_page (parent->pml4, va);
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
+	newpage = palloc_get_page(PAL_USER);
 
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
 	 *    TODO: according to the result). */
+	writable = is_writable(pte);
+	memcpy(newpage, parent_page, PGSIZE);
 
 	/* 5. Add new page to child's page table at address VA with WRITABLE
 	 *    permission. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
 		/* 6. TODO: if fail to insert page, do error handling. */
+		/* palloc했던 page를 free 시키고 false를 return */
+		palloc_free_page(newpage);
+		return false;
 	}
 	return true;
 }
@@ -133,7 +166,10 @@ __do_fork (void *aux) {
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-	struct intr_frame *parent_if;
+
+	/* project 2-3) SysCall fork */
+	struct intr_frame *parent_if = &parent -> if_;
+	/* * * * * * * * * * * * * * * * * * * */
 	bool succ = true;
 
 	/* 1. Read the cpu context to local stack. */
@@ -162,11 +198,43 @@ __do_fork (void *aux) {
 
 	process_init ();
 
+	/* project 2-3) SysCall fork */
+
+	/* (1) parent의 fd table을 children에게도 복제 */
+	struct list *parent_fd_table = &parent -> fd_table;
+
+	for(struct list_elem *parent_fde_elem = list_begin(parent_fd_table); parent_fde_elem != list_end(parent_fd_table); parent_fde_elem = list_next(parent_fd_table)){
+		struct fd_table_entry *child_fde = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
+		if (child_fde == NULL) goto error;
+
+		struct fd_table_entry *parent_fde = list_entry(parent_fde_elem, struct fd_table_entry, file_elem);
+		child_fde -> file_elem = parent_fde -> file_elem;
+		child_fde -> file_descriptor = parent_fde -> file_descriptor;
+
+		if (&parent_fde -> file_addr != NULL) {
+			child_fde -> file_addr = file_duplicate(parent_fde -> file_addr);
+
+			if (&child_fde -> file_addr == NULL) goto error;
+		} else{
+			child_fde -> file_addr = NULL;
+		}
+
+		list_push_back(&current -> fd_table, &child_fde -> file_elem);
+	}
+
+	/* child에 return 하는 값은 0 */
+	if_.R.rax = 0;
+
 	/* Finally, switch to the newly created process. */
 	if (succ)
+		/* 성공했다면 sema_up 통해서 parent에 signal */
+		sema_up(&current->fork);
 		do_iret (&if_);
 error:
-	thread_exit ();
+	/* 실패했다면 sema_up 후 exit(-1) */
+	sema_up(&current -> fork);
+	exit(-1);
+	// thread_exit ();
 }
 
 /* Switch the current execution context to the f_name.
@@ -312,7 +380,7 @@ process_exit (void) {
 
 	/* (2) child process들을 모두 wait한다. */
 	struct list *chld_list = &curr->child_list;
-	for (struct list_elem *temp_chld = list_begin(chld_list); temp_chld != NULL; temp_chld = list_next(temp_chld)){
+	for (struct list_elem *temp_chld = list_begin(chld_list); temp_chld != list_end(chld_list); temp_chld = list_next(temp_chld)){
 		struct thread *temp_chld_thread = list_entry(temp_chld, struct thread, child_elem);
 		process_wait(temp_chld_thread -> tid);
 	}

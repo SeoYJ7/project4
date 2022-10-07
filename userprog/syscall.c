@@ -56,6 +56,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_EXIT:
 			exit((int) f->R.rdi);
 			break;
+		case SYS_FORK:
+			f->R.rax = fork ((const char *) f->R.rdi, f);
+			break;
 	}
 }
 
@@ -79,6 +82,11 @@ void halt (void){
 void exit (int status){
 	thread_current() -> exit_status = status;
 	thread_exit();
+}
+
+pid_t fork (const char *thread_name, struct intr_frame *if_){
+	check_addr(thread_name);
+	return process_fork(thread_name, if_);
 }
 
 void get_args(void *esp, int *arg , int count)
