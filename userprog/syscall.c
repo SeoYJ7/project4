@@ -81,7 +81,6 @@ void exit (int status){
 	thread_exit();
 }
 
-/* project 2-3 */
 void get_args(void *esp, int *arg , int count)
 {
   for (int i = 0; i < count; i++)
