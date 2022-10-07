@@ -260,11 +260,29 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 
-	/* project 2-1) process wait 구현 전 */
-	while (true) {}
-	/* project 2-1) process wait 구현 전 */
+	/* project 2-3 */
+	if (child_tid == TID_ERROR) return -1;
 
-	return -1;
+	struct thread *child_thread;
+	struct list *child_list = &thread_current () -> child_list;
+	for (struct list_elem *temp = list_begin (child_list); temp != list_tail (child_list); temp = list_next (temp))
+	{
+		struct thread *t = list_entry (temp, struct thread, child_elem);
+		if (t->tid == child_tid)
+		{
+			child_thread = t;
+			break;
+		}
+	}
+	if (child_thread == NULL) return -1;
+
+	list_remove (&child_thread->child_elem);
+
+	sema_down (&child_thread->wait);
+    sema_up (&child_thread->exit);
+
+    return child_thread->exit_status;
+
 }
 
 /* Exit the process. This function is called by thread_exit (). */

@@ -8,6 +8,9 @@
 #ifdef VM
 #include "vm/vm.h"
 #endif
+/* project 2-3 */
+#include "threads/synch.h"
+#include "userprog/syscall.h"
 
 
 /* States in a thread's life cycle. */
@@ -105,6 +108,13 @@ struct thread {
 	int nice;
 	int recent_cpu;
 	struct list_elem entire_elem;
+
+	/* project 2-3 */
+	struct list child_list;
+    struct list_elem child_elem;
+	struct semaphore wait;
+    struct semaphore exit;
+	int exit_status;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

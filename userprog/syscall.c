@@ -75,44 +75,23 @@ void get_args(void *esp, int *arg , int count)
     }
 }
 
-void
-halt (void)
-{
-    power_off ();
-}
-
-void
-exit (int status)
-{
-    thread_current () -> exit_status = status;
-    printf ("%s: exit(%d)\n", thread_name (), status);
-    thread_exit ();
-}
-
-pid_t
-fork (const char *thread_name)
-{
-	check_addr (thread_name);
-
-}
-
 int
 exec (const char *cmd_line)
 {
 	check_addr (cmd_line);
 	char *cmd_line_copy = palloc_get_page (PAL_ZERO);
-    strlcpy (cmd_line_copy, cmd_line, strlen (file_name) + 1);
+    strlcpy (cmd_line_copy, cmd_line, strlen (cmd_line) + 1);
 
-	int child_tid = process_exec (cmd_line_copy)
+	int exec_result = process_exec (cmd_line_copy);
 	palloc_free_page (cmd_line_copy);
 
-    if (child_tid == -1) return -1;
+    if (exec_result == -1) return -1;
 }
 
 int 
 wait (pid_t pid)
 {
-
+	return process_wait ((tid_t) pid);
 }
 
 bool
