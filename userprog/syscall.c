@@ -7,7 +7,8 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
-
+/* project 2-3 */
+#include "threads/palloc.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -45,16 +46,13 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	//printf ("system call!\n");
 	//thread_exit ();
 	/* project 2-3 */
-	check_addr((void *) f->esp);
-	int args[3];
 	switch (f->R.rax)
     {
 		case SYS_HALT:
 			halt ();
 			break;
 		case SYS_EXIT:
-			get_args(f, &args[0], 1);
-			exit(args[0]);
+			exit((int) f->R.rdi);
 			break;
 	}
 }
