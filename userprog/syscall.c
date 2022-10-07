@@ -172,25 +172,26 @@ open (const char *file)
 }
 
 // helper function
-struct fd_table_entry *get_file_descriptor (int fd, struct list *fd_list)
-{
-    struct file_descriptor *fd_ptr;
-    struct list_elem *elem_ptr;
-
-    elem_ptr = list_begin (fd_list);
-    while (elem_ptr != list_tail (fd_list))
-    {
-        if (list_next (elem_ptr) == NULL)
-            break;
-        fd_ptr = list_entry (elem_ptr, struct file_descriptor, fd_elem);
-        if (fd == fd_ptr->fd_number)
-            return fd_ptr;
-        elem_ptr = list_next (elem_ptr);
-    }
+struct fd_table_entry *get_fd_table_entry (int fd, struct list *fd_list)
+{	
+	struct fd_table_entry *fde;
+	for (struct list_elem *temp = list_begin (fd_list); temp != list_tail (fd_list); temp = list_next (temp)){
+		fde = list_entry (temp, struct fd_table_entry, file_elem);
+        if (fd == fde->file_descriptor) return fd_ptr;
+	}
     return NULL;
 }
 
 int
 filesize (int fd){
-
+	lock_acquire(&file_lock);
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table)
+	
+	if (fdte == NULL){
+		lock_release (&file_lock);
+        return -1;
+	}
+	f_length = file_length (fdte->file_addr);
+	lock_release (&file_lock);
+	return f_length
 }
