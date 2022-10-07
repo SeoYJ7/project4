@@ -41,27 +41,6 @@ syscall_init (void) {
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
 }
 
-/* The main system call interface */
-void
-syscall_handler (struct intr_frame *f UNUSED) {
-	// TODO: Your implementation goes here.
-	//printf ("system call!\n");
-	//thread_exit ();
-	/* project 2-3 */
-	switch (f->R.rax)
-    {
-		case SYS_HALT:
-			halt ();
-			break;
-		case SYS_EXIT:
-			exit((int) f->R.rdi);
-			break;
-		case SYS_FORK:
-			f->R.rax = fork ((const char *) f->R.rdi, f);
-			break;
-	}
-}
-
 /* project 2-2 */
 /* invalid user virtual addr인지 check하는 함수 */
 /* mapped되지 않은 virtual address인지 확인하는 방법으로 pml4e_walk (current thread의 pml4에서 addr에 mapping되는 Pte가 없으면 NULL return) 사용
@@ -104,6 +83,9 @@ exec (const char *cmd_line)
 {
 	check_addr (cmd_line);
 	char *cmd_line_copy = palloc_get_page (PAL_ZERO);
+
+	if (cmd_line_copy == NULL) exit (-1);
+
     strlcpy (cmd_line_copy, cmd_line, strlen (cmd_line) + 1);
 
 	int exec_result = process_exec (cmd_line_copy);
@@ -145,13 +127,13 @@ int
 open (const char *file)
 {
 	check_addr (file);
-	lock_acquire (&file_lock);
+	//lock_acquire (&file_lock);
 
 	struct file *f = filesys_open(file);
 
 	if(f == NULL)
 	{
-		lock_release(&file_lock);
+		//lock_release(&file_lock);
 		return -1;
 	}
 
@@ -175,7 +157,7 @@ open (const char *file)
 	list_push_back (curr_fds, &new_file->file_elem);
 
 	int fd = new_file->file_descriptor;
-	lock_release (&file_lock);
+	//lock_release (&file_lock);
 	return fd;
 }
 
@@ -193,20 +175,176 @@ struct fd_table_entry *get_fd_table_entry (int fd, struct list *fd_list)
 int
 filesize (int fd)
 {
-	lock_acquire(&file_lock);
+	//lock_acquire(&file_lock);
+
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
-	
+
 	if (fdte == NULL){
-		lock_release (&file_lock);
+		//lock_release (&file_lock);
         return -1;
 	}
-	int f_length = file_length (fdte->file_addr);
-	lock_release (&file_lock);
-	return f_length;
+
+	int length = file_length (fdte->file_addr);
+	//lock_release (&file_lock);
+	return length;
 }
 
 int 
 read (int fd, void *buffer, unsigned size)
 {
+	check_addr (buffer);
+	//lock_acquire (&file_lock);
 
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+	
+	if (fdte == NULL){
+		//lock_release (&file_lock);
+        return -1;
+	}
+
+	if (fd == 0)
+	{
+		// lock_release (&lock_filesys);
+		return (int) input_getc();
+	}
+
+	int bytes = file_read (fdte->file_addr, buffer, size);
+	//lock_release (&file_lock);
+	return bytes;
+}
+
+int 
+write (int fd, const void *buffer, unsigned size)
+{
+	check_addr (buffer);
+	//lock_acquire (&file_lock);
+	
+	if (fd == 1)
+	{
+		putbuf (buffer, size);
+    	//lock_release(&lock_filesys);
+    	return size;
+	}
+
+	if (fd == 0 || list_empty(&thread_current()->fd_table))
+	{
+		// lock_release(&lock_filesys);
+		return 0;
+	}
+
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+	
+	if (fdte == NULL){
+		//lock_release (&file_lock);
+        return -1;
+	}
+	
+	
+
+	int bytes = file_write (fdte->file_addr, buffer, size);
+	//lock_release (&file_lock);
+	return bytes;
+}
+
+void 
+seek (int fd, unsigned position)
+{
+	//lock_acquire (&file_lock);
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+	if (fdte == NULL)
+    {
+        //lock_release (&file_lock);
+        return -1;
+    }
+	file_seek (fdte->file_addr, position);
+	//lock_release (&file_lock);
+    return;
+}
+
+unsigned
+tell (int fd)
+{
+	//lock_acquire (&file_lock);
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+	if (fdte == NULL)
+    {
+        //lock_release (&file_lock);
+        return -1;
+    }
+	unsigned pos = file_tell (fdte->file_addr);
+	//lock_release (&file_lock);
+	return pos;
+}
+
+void
+close (int fd)
+{
+	//lock_acquire (&file_lock);
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+	if (fdte == NULL)
+    {
+        //lock_release (&file_lock);
+        return -1;
+    }
+	if (fdte->file_addr != NULL) file_close (fdte->file_addr);
+    list_remove (&fdte->file_elem);
+    free (fdte);
+    //lock_release (&file_lock);
+}
+
+/* The main system call interface */
+void
+syscall_handler (struct intr_frame *f UNUSED) {
+	// TODO: Your implementation goes here.
+	//printf ("system call!\n");
+	//thread_exit ();
+	/* project 2-3 */
+	switch (f->R.rax)
+    {
+		case SYS_HALT:
+			halt ();
+			break;
+		case SYS_EXIT:
+			exit(f->R.rdi);
+			break;
+		case SYS_FORK:
+      f->R.rax = fork ((const char *) f->R.rdi, f);
+      break;
+		case SYS_EXEC:
+      f->R.rax = exec ((const char *) f->R.rdi);
+      break;
+		case SYS_WAIT:
+			f->R.rax = wait ((pid_t) f->R.rdi);
+			break;
+		case SYS_CREATE:
+			f->R.rax = create ((const char *) f->R.rdi, f->R.rsi);
+			break;
+		case SYS_REMOVE:
+			f->R.rax = remove ((const char *) f->R.rdi);
+			break;
+		case SYS_OPEN:
+			f->R.rax = open ((const char *) f->R.rdi);
+			break;
+		case SYS_FILESIZE:
+			f->R.rax = filesize (f->R.rdi);
+			break;
+		case SYS_READ:
+			f->R.rax = read (f->R.rdi, (void *) f->R.rsi, f->R.rdx);
+			break;
+		case SYS_WRITE:
+			f->R.rax = write (f->R.rdi, (void *) f->R.rsi, f->R.rdx);
+			break;
+		case SYS_SEEK:
+			seek (f->R.rdi, f->R.rsi);
+			break;
+		case SYS_TELL:
+			f->R.rax = tell (f->R.rdi);
+			break;
+		case SYS_CLOSE:
+			close (f->R.rdi);
+			break;
+		// case SYS_DUP2:
+		// 	f->R.rax = dup2 ((int) f->R.rdi, (int) f->R.rsi);
+		// 	break;
+	}
 }
