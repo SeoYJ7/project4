@@ -16,6 +16,8 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
+/* project 2-3 */
+#include "userprog/syscall.h"
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -271,6 +273,9 @@ thread_create (const char *name, int priority,
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
+
+	/* project 2-3 */
+	list_push_back (&thread_current()->child_list, &t->child_elem);
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
@@ -628,6 +633,11 @@ init_thread (struct thread *t, const char *name, int priority) {
 	/* project 1-3 */
 	t->nice = 0;
 	t->recent_cpu = 0;
+	/* project 2-3 */
+	list_init (&t->child_list);
+	sema_init (&t->wait, 0);
+    sema_init (&t->exit, 0);
+	t->exit_status  = 0;
 	
 }
 
