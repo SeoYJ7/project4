@@ -2,7 +2,13 @@
 #define USERPROG_SYSCALL_H
 
 /* project 2-3 */
+#include <list.h>
+#include "filesys/file.h"
+
+/* project 2-3 */
 typedef int pid_t;
+
+struct lock file_lock; // 2-5 ??
 
 /* project 2-3 */
 struct thread_file
