@@ -124,24 +124,22 @@ remove (const char *file)
 	return filesys_remove (file);
 }
 
-struct lock file_lock; // 2-5 ??
-
 // helper function for open()
 bool
 file_descriptor_less_func (struct list_elem *e1, struct list_elem *e2, void *aux UNUSED)
 {
     struct thread_file *f1 = list_entry (e1, struct thread_file, file_elem);
     struct thread_file *f2 = list_entry (e2, struct thread_file, file_elem);
-    return fd1->file_descriptor < fd2->file_descriptor;
+    return f1->file_descriptor < f2->file_descriptor;
 }
 
 int
 open (const char *file)
 {
 	check_addr (file);
-	lock_acquire (&file_lock)
+	lock_acquire (&file_lock);
 
-	struct file* f = filesys_open(file);
+	struct file *f = filesys_open(file);
 
 	if(f == NULL)
 	{
@@ -155,16 +153,20 @@ open (const char *file)
 	struct thread_file *new_file = (struct thread_file *) malloc (sizeof (struct thread_file));
 	
 	new_file->file_addr = f;
+
+	int n = 3; // 0, 1, 2 는 정해져있기 때문에 3부터 시작
 	list_sort(curr_fds, file_descriptor_less_func, NULL);
 	for (struct list_elem *temp = list_begin (curr_fds); temp != list_end (curr_fds); temp = list_next (temp)){
 		struct thread_file *fp = list_entry (temp, struct thread_file, file_elem);
-		
+		if (fp->file_descriptor < n) continue;
+		else if (fp->file_descriptor == n) n++;
+		else if (fp->file_descriptor > n) break;
 	}
-	new_file->file_descriptor = 
+	new_file->file_descriptor = n;
 
-	list_push_back (curr_fd_list, &fd->file_elem);
+	list_push_back (curr_fds, &new_file->file_elem);
 
-	num = fd->fd_number;
+	int fd = new_file->file_descriptor;
 	lock_release (&file_lock);
-	return num;
+	return fd;
 }
