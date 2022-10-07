@@ -11,7 +11,7 @@ typedef int pid_t;
 struct lock file_lock; // 2-5 ??
 
 /* project 2-3 */
-struct thread_file
+struct fd_table_entry
 {
     struct list_elem file_elem;
     struct file *file_addr;
