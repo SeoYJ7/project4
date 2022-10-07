@@ -177,21 +177,28 @@ struct fd_table_entry *get_fd_table_entry (int fd, struct list *fd_list)
 	struct fd_table_entry *fde;
 	for (struct list_elem *temp = list_begin (fd_list); temp != list_tail (fd_list); temp = list_next (temp)){
 		fde = list_entry (temp, struct fd_table_entry, file_elem);
-        if (fd == fde->file_descriptor) return fd_ptr;
+        if (fd == fde->file_descriptor) return fde;
 	}
     return NULL;
 }
 
 int
-filesize (int fd){
+filesize (int fd)
+{
 	lock_acquire(&file_lock);
-	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table)
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	
 	if (fdte == NULL){
 		lock_release (&file_lock);
         return -1;
 	}
-	f_length = file_length (fdte->file_addr);
+	int f_length = file_length (fdte->file_addr);
 	lock_release (&file_lock);
-	return f_length
+	return f_length;
+}
+
+int 
+read (int fd, void *buffer, unsigned size)
+{
+
 }
