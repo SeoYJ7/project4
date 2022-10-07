@@ -286,6 +286,10 @@ process_wait (tid_t child_tid) {
 }
 
 /* project 2-3 */
+/* 
+(1) process의 file descriptor table에 있는 모든 file들을 free 시키고 exit해야 한다.
+(2) 모든 child process들이 무사히 exit 될 때까지 wait (process_wait)
+ */
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {
@@ -296,6 +300,25 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	process_cleanup ();
+
+	/* project 2-3 */
+	/* (1) fd_table에 있는 모든 file들을 free 시킨다. */
+	struct list *fd_table = &curr->fd_table;
+	while (!list_empty(fd_table)){
+		struct list_elem *temp_ptr = list_pop_front(fd_table);
+		struct fd_table_entry *temp_entry = list_entry(temp_ptr, struct fd_table_entry, file_elem);
+		free(temp_entry);
+	}
+
+	/* (2) child process들을 모두 wait한다. */
+	struct list *chld_list = &curr->child_list;
+	for (struct list_elem *temp_chld = list_begin(chld_list); temp_chld != NULL; temp_chld = list_next(temp_chld)){
+		struct thread *temp_chld_thread = list_entry(temp_chld, struct thread, child_elem);
+		process_wait(temp_chld_thread -> tid);
+	}
+
+	sema_up(&curr -> wait);
+	sema_down(&curr -> exit);
 }
 
 /* Free the current process's resources. */
