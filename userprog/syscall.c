@@ -75,7 +75,7 @@ void halt (void){
 }
 /* current user program을 종료한다. exit status를 thread가 기억해서 Parent가 wait시에 return 할 수 있도록 한다. */
 void exit (int status){
-	thread_current() -> status = status;
+	thread_current() -> exit_status = status;
 	thread_exit();
 }
 
