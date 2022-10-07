@@ -415,8 +415,6 @@ thread_yield (void) {
 /* project 1-2 */
 void update_priority(void)
 {
-	enum intr_level old_level;
-	old_level = intr_disable ();
 	struct thread *t = thread_current();
 	t->priority = t->init_priority;
 	if (!list_empty(&t->donations)) {
@@ -424,7 +422,6 @@ void update_priority(void)
 		int max_priority = list_entry(list_begin(&t->donations), struct thread, donation_elem)->priority;
 		t->priority = ((t->priority > max_priority) ? t->priority : max_priority);
 	}
-	intr_set_level (old_level);
 }
 
 /* project 1-2 */
@@ -434,7 +431,8 @@ void donate_priority(void)
 	for(int i=0; i<8; i++){
     	if (t->wait_lock == NULL) break;
 		struct thread *h = (t->wait_lock)->holder;
-		h->priority = t->priority;
+		if (h->priority < t->priority)
+			h->priority = t->priority;
 		t = h;
 	}
 }
@@ -454,14 +452,10 @@ thread_set_priority (int new_priority) {
 	if (thread_mlfqs)
 		return;
 	/* project 1-2 */
-	enum intr_level old_level;
-	old_level = intr_disable ();
 	thread_current ()->init_priority = new_priority;
 
 	update_priority();
 	max_priority();
-
-	intr_set_level (old_level);
 }
 
 /* Returns the current thread's priority. */
