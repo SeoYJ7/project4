@@ -267,6 +267,7 @@ process_wait (tid_t child_tid UNUSED) {
 	return -1;
 }
 
+/* project 2-3 */
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {

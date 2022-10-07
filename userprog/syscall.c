@@ -8,6 +8,7 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 
+
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
@@ -44,3 +45,28 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	printf ("system call!\n");
 	thread_exit ();
 }
+
+/* project 2-2 */
+/* invalid user virtual addr인지 check하는 함수 */
+/* mapped되지 않은 virtual address인지 확인하는 방법으로 pml4e_walk (current thread의 pml4에서 addr에 mapping되는 Pte가 없으면 NULL return) 사용
+pml4_get_page는 PTE가 있더라도 validity가 0이면 NULL을 return하는데 validity가 0인 것은 page_fault가 일어나야 하는 상황이지 exit이 되어야 하는 상황은 아니기에
+pml4e_walk 함수 사용
+ */
+void check_addr(void *addr)
+{
+	if (addr == NULL || is_kernel_vaddr (addr) || pml4e_walk(thread_current() -> pml4, addr, 0) == NULL) exit (-1);
+}
+/* project 2-2 */
+
+
+/* project 2-3 */
+/* power_off 함수를 사용하여 pintos를 종료 */
+void halt (void){
+	power_off();
+}
+/* current user program을 종료한다. exit status를 thread가 기억해서 Parent가 wait시에 return 할 수 있도록 한다. */
+void exit (int status){
+	thread_current() -> status = status;
+	thread_exit();
+}
+/* project 2-3 */
