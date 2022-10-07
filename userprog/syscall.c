@@ -186,19 +186,33 @@ int
 filesize (int fd)
 {
 	lock_acquire(&file_lock);
+
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+
+	if (fdte == NULL){
+		lock_release (&file_lock);
+        return -1;
+	}
+
+	int length = file_length (fdte->file_addr);
+	lock_release (&file_lock);
+	return length;
+}
+
+int 
+read (int fd, void *buffer, unsigned size)
+{
+	check_addr (buffer);
+	lock_acquire (&file_lock);
+
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	
 	if (fdte == NULL){
 		lock_release (&file_lock);
         return -1;
 	}
-	int f_length = file_length (fdte->file_addr);
+
+	int bytes = file_read (fdte->file_addr, buffer, size);
 	lock_release (&file_lock);
-	return f_length;
-}
-
-int 
-read (int fd, void *buffer, unsigned size)
-{
-
+	return bytes;
 }
