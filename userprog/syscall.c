@@ -171,3 +171,27 @@ open (const char *file)
 	lock_release (&file_lock);
 	return fd;
 }
+
+// helper function
+struct fd_table_entry *get_file_descriptor (int fd, struct list *fd_list)
+{
+    struct file_descriptor *fd_ptr;
+    struct list_elem *elem_ptr;
+
+    elem_ptr = list_begin (fd_list);
+    while (elem_ptr != list_tail (fd_list))
+    {
+        if (list_next (elem_ptr) == NULL)
+            break;
+        fd_ptr = list_entry (elem_ptr, struct file_descriptor, fd_elem);
+        if (fd == fd_ptr->fd_number)
+            return fd_ptr;
+        elem_ptr = list_next (elem_ptr);
+    }
+    return NULL;
+}
+
+int
+filesize (int fd){
+
+}
