@@ -117,6 +117,10 @@ struct thread {
 	int exit_status;
 	struct list fd_table;
 
+	/* project 2-3 for fork */
+	struct semaphore fork;
+	struct intr_frame *if_;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */

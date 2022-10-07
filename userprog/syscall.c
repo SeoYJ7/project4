@@ -63,15 +63,20 @@ void exit (int status){
 	thread_exit();
 }
 
-// void get_args(void *esp, int *arg , int count)
-// {
-//   for (int i = 0; i < count; i++)
-//     {
-//       int *ptr = (int *) esp + i + 1;
-//       check_addr((void *) ptr);
-//       arg[i] = *ptr;
-//     }
-// }
+pid_t fork (const char *thread_name, struct intr_frame *if_){
+	check_addr(thread_name);
+	return process_fork(thread_name, if_);
+}
+
+void get_args(void *esp, int *arg , int count)
+{
+  for (int i = 0; i < count; i++)
+    {
+      int *ptr = (int *) esp + i + 1;
+      check_addr((void *) ptr);
+      arg[i] = *ptr;
+    }
+}
 
 int
 exec (const char *cmd_line)
@@ -302,12 +307,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_EXIT:
 			exit(f->R.rdi);
 			break;
-		// case SYS_FORK:
-        // 	f->R.rax = fork ((const char *) f->R.rdi, f);
-        // 	break;
+		case SYS_FORK:
+      f->R.rax = fork ((const char *) f->R.rdi, f);
+      break;
 		case SYS_EXEC:
-        	f->R.rax = exec ((const char *) f->R.rdi);
-        	break;
+      f->R.rax = exec ((const char *) f->R.rdi);
+      break;
 		case SYS_WAIT:
 			f->R.rax = wait ((pid_t) f->R.rdi);
 			break;
