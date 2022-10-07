@@ -41,6 +41,90 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
-	printf ("system call!\n");
-	thread_exit ();
+	//printf ("system call!\n");
+	//thread_exit ();
+	/* project 2-3 */
+	check_addr((void *) f->esp);
+	int args[3];
+	switch (f->R.rax)
+    {
+		case SYS_HALT:
+			halt ();
+			break;
+		case SYS_EXIT:
+			get_args(f, &args[0], 1);
+			exit(args[0]);
+			break;
+	}
+}
+
+/* project 2-2 */
+void check_addr(void *addr)
+{
+	if (addr == NULL || is_kernel_vaddr (addr) || addr < (void *) 0x08048000) exit (-1);
+}
+
+/* project 2-3 */
+void get_args(void *esp, int *arg , int count)
+{
+  for (int i = 0; i < count; i++)
+    {
+      int *ptr = (int *) esp + i + 1;
+      check_addr((void *) ptr);
+      arg[i] = *ptr;
+    }
+}
+
+void
+halt (void)
+{
+    power_off ();
+}
+
+void
+exit (int status)
+{
+    thread_current () -> exit_status = status;
+    printf ("%s: exit(%d)\n", thread_name (), status);
+    thread_exit ();
+}
+
+pid_t
+fork (const char *thread_name)
+{
+	check_addr (thread_name);
+
+}
+
+int
+exec (const char *cmd_line)
+{
+	check_addr (cmd_line);
+	char *cmd_line_copy = palloc_get_page (PAL_ZERO);
+    strlcpy (cmd_line_copy, cmd_line, strlen (file_name) + 1);
+
+	int child_tid = process_exec (cmd_line_copy)
+	palloc_free_page (cmd_line_copy);
+
+    if (child_tid == -1) return -1;
+}
+
+int 
+wait (pid_t pid)
+{
+
+}
+
+bool
+create (const char *file , unsigned initial_size)
+{
+    check_addr (file);
+	return filesys_create (file, initial_size);
+}
+
+bool
+remove (const char *file)
+{
+    check_addr (file);
+	return filesys_remove (file);
 }

@@ -674,8 +674,18 @@ setup_stack (struct intr_frame *if_) {
 void 
 args_to_stack(char **parse, int count, struct intr_frame *if_)
 {	
-	void **esp = &_if->rsp;
+	void **esp = &if_->rsp;
 	// strings
+
+	int i, j;
+	for (i = count - 1 ; i > -1 ; i--)
+	{
+		for (j = strlen(parse[i]) ; j > -1 ; j--)
+		{
+			*esp = *esp - 1;
+			**(char **)esp = parse[i][j];
+		}
+	}
 	// addresses
 	// argv
 	// argc
