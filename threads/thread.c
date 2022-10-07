@@ -283,10 +283,11 @@ thread_create (const char *name, int priority,
 	list_push_back (&thread_current()->child_list, &t->child_elem);
 
 	if (!is_fork) {
-		for (int i=0; i<2; i++){
+		for (int i=0; i<3; i++){
 			struct fd_table_entry *default_fd = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
 			if (default_fd == NULL) return TID_ERROR;
 
+			default_fd->file_addr = NULL;
 			default_fd -> file_descriptor = i;
 			list_push_back(&t->fd_table, &default_fd->file_elem);
 		}
@@ -655,8 +656,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->exit_status  = 0;
 
 	list_init(&t->fd_table);
-	sema_init (&t->fork, 0);
-	
+	sema_init (&t->fork, 0);	
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

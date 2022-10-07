@@ -60,12 +60,13 @@ void halt (void){
 /* current user program을 종료한다. exit status를 thread가 기억해서 Parent가 wait시에 return 할 수 있도록 한다. */
 void exit (int status){
 	thread_current() -> exit_status = status;
+	printf ("%s: exit(%d)\n", thread_name (), status);
 	thread_exit();
 }
 
 pid_t fork (const char *thread_name, struct intr_frame *if_){
 	check_addr(thread_name);
-	return process_fork(thread_name, if_);
+	return (pid_t) process_fork(thread_name, if_);
 }
 
 void get_args(void *esp, int *arg , int count)
@@ -308,11 +309,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			exit(f->R.rdi);
 			break;
 		case SYS_FORK:
-      f->R.rax = fork ((const char *) f->R.rdi, f);
-      break;
+			f->R.rax = fork ((const char *) f->R.rdi, f);
+			break;
 		case SYS_EXEC:
-      f->R.rax = exec ((const char *) f->R.rdi);
-      break;
+			f->R.rax = exec ((const char *) f->R.rdi);
+			break;
 		case SYS_WAIT:
 			f->R.rax = wait ((pid_t) f->R.rdi);
 			break;
@@ -342,6 +343,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_CLOSE:
 			close (f->R.rdi);
+			break;
+		default :
 			break;
 		// case SYS_DUP2:
 		// 	f->R.rax = dup2 ((int) f->R.rdi, (int) f->R.rsi);

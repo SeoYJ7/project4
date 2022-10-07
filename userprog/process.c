@@ -51,14 +51,15 @@ process_create_initd (const char *file_name) {
 	strlcpy (fn_copy, file_name, PGSIZE);
 	
 	/* project 2-1 */
-	// char *real_file_name;
-	// char *saveptr;
-	// real_file_name = malloc(strlen(file_name) + 1);
-  	// strlcpy (real_file_name, file_name, strlen(file_name) + 1);
-  	// real_file_name = strtok_r (real_file_name, " ", &saveptr);
+	/* thread create 할 때 file_name은 args까지 포함한 string이기 때문에 strtok_r을 통해 앞의 name만 뽑아내야 한다. */
+	char *real_file_name;
+	char *saveptr;
+	real_file_name = malloc(strlen(file_name) + 1);
+  	strlcpy (real_file_name, file_name, strlen(file_name) + 1);
+  	real_file_name = strtok_r (real_file_name, " ", &saveptr);
 
 	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (file_name, -1, initd, fn_copy); // project 2-1
+	tid = thread_create (real_file_name, -1, initd, fn_copy); // project 2-1
 
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
@@ -84,12 +85,12 @@ initd (void *f_name) {
 
 
 /* project 2-3 Syscall process_fork helper method */
-struct thread *find_child(tid_t pid){
+struct thread *find_child(tid_t tid){
 	struct list *child_list = &thread_current() -> child_list;
+	
 	for (struct list_elem *child_elem = list_begin(child_list); child_elem != list_end(child_list); child_elem = list_next(child_elem)){
 		struct thread *child_thread = list_entry(child_elem, struct thread, child_elem);
-
-		if (child_thread -> tid == pid)
+		if (child_thread -> tid == tid)
 			return child_thread;
 	}
 	return NULL;
@@ -104,15 +105,15 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *curr = thread_current();
 	curr -> if_ = if_;
 
-	tid_t pid = thread_create (name,PRI_DEFAULT, __do_fork, curr);
+	tid_t tid = thread_create (name, -1, __do_fork, curr);
 
-	if (pid == TID_ERROR) {
+	if (tid == TID_ERROR) {
 		return TID_ERROR;
 	}
 
-	struct thread *child = find_child(pid);
+	struct thread *child = find_child(tid);
 	sema_down(&child->fork);
-	return pid;
+	return tid;
 }
 
 
@@ -130,7 +131,7 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	bool writable;
 
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
-	if (is_kernel_vaddr(va)) return false;
+	if (is_kern_pte(pte)) return true;
 	/* 2. Resolve VA from the parent's page map level 4. */
 	parent_page = pml4_get_page (parent->pml4, va);
 
@@ -166,10 +167,10 @@ __do_fork (void *aux) {
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-
 	/* project 2-3) SysCall fork */
-	struct intr_frame *parent_if = &parent -> if_;
+	struct intr_frame *parent_if = parent -> if_;
 	/* * * * * * * * * * * * * * * * * * * */
+
 	bool succ = true;
 
 	/* 1. Read the cpu context to local stack. */
@@ -186,8 +187,11 @@ __do_fork (void *aux) {
 	if (!supplemental_page_table_copy (&current->spt, &parent->spt))
 		goto error;
 #else
-	if (!pml4_for_each (parent->pml4, duplicate_pte, parent))
+	if (!pml4_for_each (parent->pml4, duplicate_pte, parent)){
+		
 		goto error;
+	}
+		
 #endif
 
 	/* TODO: Your code goes here.
@@ -197,24 +201,34 @@ __do_fork (void *aux) {
 	 * TODO:       the resources of parent.*/
 
 	process_init ();
-
 	/* project 2-3) SysCall fork */
 
-	/* (1) parent의 fd table을 children에게도 복제 */
-	struct list *parent_fd_table = &parent -> fd_table;
+	/* child에 return 하는 값은 0 */
+	if_.R.rax = 0;
 
-	for(struct list_elem *parent_fde_elem = list_begin(parent_fd_table); parent_fde_elem != list_end(parent_fd_table); parent_fde_elem = list_next(parent_fd_table)){
+	/* (1) parent의 fd table을 children에게도 복제 */
+	struct list_elem *parent_fde_elem;
+	struct list *parent_fd_table = &parent -> fd_table;
+	
+	for(parent_fde_elem = list_begin(parent_fd_table); 
+			parent_fde_elem != list_end(parent_fd_table); 
+			parent_fde_elem = list_next(parent_fde_elem)){
+
+		// PANIC("start for loop");
 		struct fd_table_entry *child_fde = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
-		if (child_fde == NULL) goto error;
+		if (child_fde == NULL) {
+			goto error;
+		}
 
 		struct fd_table_entry *parent_fde = list_entry(parent_fde_elem, struct fd_table_entry, file_elem);
-		child_fde -> file_elem = parent_fde -> file_elem;
 		child_fde -> file_descriptor = parent_fde -> file_descriptor;
 
-		if (&parent_fde -> file_addr != NULL) {
+		if (parent_fde -> file_addr != NULL) {
 			child_fde -> file_addr = file_duplicate(parent_fde -> file_addr);
 
-			if (&child_fde -> file_addr == NULL) goto error;
+			if (child_fde -> file_addr == NULL) {
+				goto error;
+			}
 		} else{
 			child_fde -> file_addr = NULL;
 		}
@@ -222,14 +236,14 @@ __do_fork (void *aux) {
 		list_push_back(&current -> fd_table, &child_fde -> file_elem);
 	}
 
-	/* child에 return 하는 값은 0 */
-	if_.R.rax = 0;
+	
 
 	/* Finally, switch to the newly created process. */
-	if (succ)
+	if (succ){
 		/* 성공했다면 sema_up 통해서 parent에 signal */
 		sema_up(&current->fork);
 		do_iret (&if_);
+	}
 error:
 	/* 실패했다면 sema_up 후 exit(-1) */
 	sema_up(&current -> fork);
@@ -330,7 +344,6 @@ process_wait (tid_t child_tid) {
 
 	/* project 2-3 */
 	if (child_tid == TID_ERROR) return -1;
-
 	struct thread *child_thread;
 	struct list *child_list = &thread_current () -> child_list;
 	for (struct list_elem *temp = list_begin (child_list); temp != list_tail (child_list); temp = list_next (temp))
@@ -820,26 +833,26 @@ args_to_stack(char **argv, int count, struct intr_frame *_if, char **address_lis
 		str_len = strlen(argv[i]) + 1;
 		*sp -= str_len;
 		memcpy(*sp, argv[i], str_len);
-		address_list[count-i-1], *sp, 8;
+		address_list[count-i-1] = *sp;
 	}
 	
-	
+
 	// word alignment
 	int not_align = ((uint64_t) *sp) % 8;
 	if (not_align) {
-		*sp -= (8-not_align);
+		*sp -= not_align;
 	}
-	**(uint64_t **) sp = 0;
 	
 	// null pointer
 	*sp -= 8;
 	**(uint64_t **) sp = 0;
 	
 	// addresses
-	for (int i=0; i>=count-1; i--) {
+	for (int i=0; i<=count-1; i++) {
 		*sp -= 8;
 		memcpy(*sp, &address_list[i], 8);
 	}
+	
 	
 	
 	// argv
