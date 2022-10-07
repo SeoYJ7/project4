@@ -58,7 +58,7 @@ process_create_initd (const char *file_name) {
   	// real_file_name = strtok_r (real_file_name, " ", &saveptr);
 
 	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy); // project 2-1
+	tid = thread_create (file_name, -1, initd, fn_copy); // project 2-1
 
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);

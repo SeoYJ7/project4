@@ -265,18 +265,33 @@ thread_create (const char *name, int priority,
 
 	ASSERT (function != NULL);
 
+	/* projcet 2-3 Syscall fork */
+	bool is_fork = (priority==-1);
+
+	int priority_real = (priority == -1) ? PRI_DEFAULT : priority;
+
 	/* Allocate thread. */
 	t = palloc_get_page (PAL_ZERO);
 	if (t == NULL)
 		return TID_ERROR;
 
 	/* Initialize thread. */
-	init_thread (t, name, priority);
+	init_thread (t, name, priority_real);
 	tid = t->tid = allocate_tid ();
 
 	/* project 2-3 */
 	list_push_back (&thread_current()->child_list, &t->child_elem);
 
+	if (!is_fork) {
+		for (int i=0; i<2; i++){
+			struct fd_table_entry *default_fd = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
+			if (default_fd == NULL) return TID_ERROR;
+
+			default_fd -> file_descriptor = i;
+			list_push_back(&t->fd_table, &default_fd->file_elem);
+		}
+	}
+	
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;
@@ -638,6 +653,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	sema_init (&t->wait, 0);
     sema_init (&t->exit, 0);
 	t->exit_status  = 0;
+
+	list_init(&t->fd_table);
+	sema_init (&t->fork, 0);
 	
 }
 
