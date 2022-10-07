@@ -77,11 +77,10 @@ void halt (void){
 }
 /* current user program을 종료한다. exit status를 thread가 기억해서 Parent가 wait시에 return 할 수 있도록 한다. */
 void exit (int status){
-	thread_current() -> status = status;
+	thread_current() -> exit_status = status;
 	thread_exit();
 }
 
-/* project 2-3 */
 void get_args(void *esp, int *arg , int count)
 {
   for (int i = 0; i < count; i++)
@@ -129,8 +128,8 @@ remove (const char *file)
 bool
 file_descriptor_less_func (struct list_elem *e1, struct list_elem *e2, void *aux UNUSED)
 {
-    struct thread_file *f1 = list_entry (e1, struct thread_file, file_elem);
-    struct thread_file *f2 = list_entry (e2, struct thread_file, file_elem);
+    struct fd_table_entry *f1 = list_entry (e1, struct fd_table_entry, file_elem);
+    struct fd_table_entry *f2 = list_entry (e2, struct fd_table_entry, file_elem);
     return f1->file_descriptor < f2->file_descriptor;
 }
 
@@ -149,16 +148,16 @@ open (const char *file)
 	}
 
 	struct thread *curr_thread = thread_current ();
-	struct list *curr_fds = &curr_thread->file_descriptors;
+	struct list *curr_fds = &curr_thread->fd_table;
 	
-	struct thread_file *new_file = (struct thread_file *) malloc (sizeof (struct thread_file));
+	struct fd_table_entry *new_file = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
 	
 	new_file->file_addr = f;
 
 	int n = 3; // 0, 1, 2 는 정해져있기 때문에 3부터 시작
 	list_sort(curr_fds, file_descriptor_less_func, NULL);
 	for (struct list_elem *temp = list_begin (curr_fds); temp != list_end (curr_fds); temp = list_next (temp)){
-		struct thread_file *fp = list_entry (temp, struct thread_file, file_elem);
+		struct fd_table_entry *fp = list_entry (temp, struct fd_table_entry, file_elem);
 		if (fp->file_descriptor < n) continue;
 		else if (fp->file_descriptor == n) n++;
 		else if (fp->file_descriptor > n) break;

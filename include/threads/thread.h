@@ -115,7 +115,7 @@ struct thread {
 	struct semaphore wait;
     struct semaphore exit;
 	int exit_status;
-	struct list file_descriptors;
+	struct list fd_table;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
