@@ -8,6 +8,8 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 /* project 2-3 */
+#include "filesys/file.h"
+#include "filesys/filesys.h"
 #include "threads/palloc.h"
 
 void syscall_entry (void);
@@ -120,4 +122,49 @@ remove (const char *file)
 {
     check_addr (file);
 	return filesys_remove (file);
+}
+
+struct lock file_lock; // 2-5 ??
+
+// helper function for open()
+bool
+file_descriptor_less_func (struct list_elem *e1, struct list_elem *e2, void *aux UNUSED)
+{
+    struct thread_file *f1 = list_entry (e1, struct thread_file, file_elem);
+    struct thread_file *f2 = list_entry (e2, struct thread_file, file_elem);
+    return fd1->file_descriptor < fd2->file_descriptor;
+}
+
+int
+open (const char *file)
+{
+	check_addr (file);
+	lock_acquire (&file_lock)
+
+	struct file* f = filesys_open(file);
+
+	if(f == NULL)
+	{
+		lock_release(&file_lock);
+		return -1;
+	}
+
+	struct thread *curr_thread = thread_current ();
+	struct list *curr_fds = &curr_thread->file_descriptors;
+	
+	struct thread_file *new_file = (struct thread_file *) malloc (sizeof (struct thread_file));
+	
+	new_file->file_addr = f;
+	list_sort(curr_fds, file_descriptor_less_func, NULL);
+	for (struct list_elem *temp = list_begin (curr_fds); temp != list_end (curr_fds); temp = list_next (temp)){
+		struct thread_file *fp = list_entry (temp, struct thread_file, file_elem);
+		
+	}
+	new_file->file_descriptor = 
+
+	list_push_back (curr_fd_list, &fd->file_elem);
+
+	num = fd->fd_number;
+	lock_release (&file_lock);
+	return num;
 }
