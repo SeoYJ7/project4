@@ -219,7 +219,7 @@ lock_acquire (struct lock *lock) {
 		struct thread *curr = thread_current();
 		if (lock->holder != NULL) {
 			curr->wait_lock = lock;
-			list_push_back(&lock->holder->donations, &curr->donation_elem);
+			list_insert_ordered(&lock->holder->donations, &curr->donation_elem, compare_priority, NULL);
 			donate_priority();
 		}
 	}
