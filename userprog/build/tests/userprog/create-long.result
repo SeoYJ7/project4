@@ -1,0 +1,9 @@
+FAIL
+Kernel panic in run: PANIC at ../../userprog/process.c:715 in args_to_stack(): create-long
+Call stack: 0x8004218467 0x800421c916 0x800421bdf3 0x800421ba9f 0x8004207dfb
+Translation of call stack:
+0x0000008004218467: debug_panic (lib/kernel/debug.c:32)
+0x000000800421c916: exception_init (userprog/exception.c:31)
+0x000000800421bdf3: process_exec (userprog/process.c:213)
+0x000000800421ba9f: initd (userprog/process.c:80)
+0x0000008004207dfb: kernel_thread (threads/thread.c:611)
