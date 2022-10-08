@@ -115,6 +115,7 @@ struct thread {
 	struct semaphore wait;
     struct semaphore exit;
 	int exit_status;
+	int child_status;
 	struct list fd_table;
 
 	/* project 2-3 for fork */

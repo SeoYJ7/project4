@@ -86,7 +86,8 @@ exec (const char *cmd_line)
 	int exec_result = process_exec (cmd_line_copy);
 	palloc_free_page (cmd_line_copy);
 
-    if (exec_result == -1) exit(-1);
+    if (exec_result == -1) return(-1);
+	return(0);
 }
 
 int 
@@ -197,8 +198,8 @@ read (int fd, void *buffer, unsigned size)
 	
 	if (fdte == NULL){
 		lock_release (&file_lock);
-        return -1;
-		//exit (-1);
+        // return -1;
+		exit (-1);
 	}
 
 	if (fd == 0)
@@ -215,7 +216,8 @@ read (int fd, void *buffer, unsigned size)
 
 	if (fd == 1 || fd == 2) {
 		lock_release (&file_lock);
-		exit (-1); // return -1;
+		// exit (-1);
+		return -1;
 	}
 	int bytes = file_read (fdte->file_addr, buffer, size);
 	lock_release (&file_lock);
@@ -232,8 +234,8 @@ write (int fd, const void *buffer, unsigned size)
 	if (fd == 0)
 	{
 		lock_release(&file_lock);
-		// return -1;
-		exit (-1);
+		return -1;
+		// exit (-1);
 	}
 
 	if (fd == 1)
@@ -245,8 +247,8 @@ write (int fd, const void *buffer, unsigned size)
 
 	if (fd == 2) {
 		lock_release(&file_lock);
-		exit(-1);
-		// return -1;
+		// exit(-1);
+		return -1;
 	}
 	
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
