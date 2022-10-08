@@ -96,7 +96,7 @@ struct thread *find_child(tid_t pid){
 }
 
 
-/* Clones the current process as `name`. Returns the new process's thread id, or
+/* Clones the current e  ss as `name`. Returns the new process's thread id, or
  * TID_ERROR if the thread cannot be created. */
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
@@ -112,6 +112,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 
 	struct thread *child = find_child(pid);
 	sema_down(&child->fork);
+
 	return pid;
 }
 
@@ -820,7 +821,7 @@ args_to_stack(char **argv, int count, struct intr_frame *_if, char **address_lis
 		str_len = strlen(argv[i]) + 1;
 		*sp -= str_len;
 		memcpy(*sp, argv[i], str_len);
-		address_list[count-i-1], *sp, 8;
+		address_list[count-i-1] = *sp;
 	}
 	
 	
