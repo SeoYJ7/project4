@@ -159,3 +159,11 @@ file_tell (struct file *file) {
 	ASSERT (file != NULL);
 	return file->pos;
 }
+
+/* project 2-5 */
+// helper function for write
+bool
+get_deny_write (struct file *file)
+{
+	return file->deny_write;
+}

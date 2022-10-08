@@ -97,7 +97,7 @@ struct thread *find_child(tid_t tid){
 }
 
 
-/* Clones the current process as `name`. Returns the new process's thread id, or
+/* Clones the current e  ss as `name`. Returns the new process's thread id, or
  * TID_ERROR if the thread cannot be created. */
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
