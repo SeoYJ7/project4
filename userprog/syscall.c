@@ -146,6 +146,9 @@ open (const char *file)
 	
 	new_file->file_addr = f;
 
+	/* project 2-5 */
+	if (strcmp (thread_current ()->name, new_file) == 0) file_deny_write (f);
+
 	int n = 3; // 0, 1, 2 는 정해져있기 때문에 3부터 시작
 	list_sort(curr_fds, file_descriptor_less_func, NULL);
 	for (struct list_elem *temp = list_begin (curr_fds); temp != list_end (curr_fds); temp = list_next (temp)){
@@ -201,14 +204,22 @@ read (int fd, void *buffer, unsigned size)
 	
 	if (fdte == NULL){
 		//lock_release (&file_lock);
-        return -1;
+        // return -1;
+		exit (-1);
 	}
 
 	if (fd == 0)
 	{
+		int ret;
+		for (int i = 0; i < size; i++){
+			if (((char *) buffer)[i] == '\0')
+            	ret = i;
+		}
 		// lock_release (&lock_filesys);
-		return (int) input_getc();
+		return ret;
 	}
+
+	if (fd == 1 || fd == 2) exit (-1); // return -1;
 
 	int bytes = file_read (fdte->file_addr, buffer, size);
 	//lock_release (&file_lock);
@@ -221,6 +232,13 @@ write (int fd, const void *buffer, unsigned size)
 	check_addr (buffer);
 	//lock_acquire (&file_lock);
 	
+	if (fd == 0)
+	{
+		// lock_release(&lock_filesys);
+		// return -1;
+		exit (-1);
+	}
+
 	if (fd == 1)
 	{
 		putbuf (buffer, size);
@@ -228,23 +246,20 @@ write (int fd, const void *buffer, unsigned size)
     	return size;
 	}
 
-	if (fd == 0)
-	{
-		// lock_release(&lock_filesys);
-		return -1;
-	}
-
-	if (fd == 2) exit(-1);
+	if (fd == 2) exit (-1); //return -1;
 
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	
 	if (fdte == NULL){
 		//lock_release (&file_lock);
-        return -1;
-		// exit(-1);
+        // return -1;
+		exit(-1);
 	}
 	
-	
+	/* project 2-5 */
+	if (strcmp (fdte, thread_current ()->name) == 0) file_deny_write (fdte);
+	struct file *f = fdte->file_addr;
+	if (get_deny_write(f)) file_deny_write (f);
 
 	int bytes = file_write (fdte->file_addr, buffer, size);
 	//lock_release (&file_lock);
