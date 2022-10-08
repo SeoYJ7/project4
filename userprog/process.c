@@ -372,6 +372,9 @@ process_exit (void) {
 	process_cleanup ();
 	struct thread *curr = thread_current ();
 
+	/* project 2-5 */
+	lock_acquire(&file_lock);
+
 	/* project 2-3 */
 	/* (1) fd_table에 있는 모든 file들을 free 시킨다. */
 	struct list *fd_table = &curr->fd_table;
@@ -380,6 +383,8 @@ process_exit (void) {
 		struct fd_table_entry *temp_entry = list_entry(temp_ptr, struct fd_table_entry, file_elem);
 		free(temp_entry);
 	}
+
+	lock_release(&file_lock);
 
 	/* (2) child process들을 모두 wait한다. */
 	struct list *chld_list = &curr->child_list;

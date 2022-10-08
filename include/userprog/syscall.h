@@ -8,7 +8,8 @@
 /* project 2-3 */
 typedef int pid_t;
 
-struct lock file_lock; // 2-5 ??
+/* project 2-5 */
+struct lock file_lock; 
 
 /* project 2-3 */
 struct fd_table_entry
