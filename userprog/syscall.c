@@ -140,7 +140,7 @@ open (const char *file)
 	new_file->file_addr = f;
 
 	/* project 2-5 */
-	if (strcmp (thread_current ()->name, file) == 0) file_deny_write (f);
+	if (strcmp (thread_current ()->name, (char *) file) == 0) file_deny_write (f);
 
 	int n = 3; // 0, 1, 2 는 정해져있기 때문에 3부터 시작
 	list_sort(curr_fds, file_descriptor_less_func, NULL);
