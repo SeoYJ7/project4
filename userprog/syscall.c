@@ -52,7 +52,7 @@ pml4e_walk 함수 사용
  */
 void check_addr(const uint64_t *addr)
 {
-	if (addr == NULL || is_kernel_vaddr (addr) || pml4e_walk(thread_current() -> pml4, addr, 0) == NULL) exit (-1);
+	if (addr == NULL || is_kernel_vaddr (addr) || pml4e_walk(thread_current() -> pml4, addr, false) == NULL) exit (-1);
 }
 
 /* project 2-3 */
@@ -70,16 +70,6 @@ void exit (int status){
 pid_t fork (const char *thread_name, struct intr_frame *if_){
 	check_addr(thread_name);
 	return (pid_t) process_fork(thread_name, if_);
-}
-
-void get_args(void *esp, int *arg , int count)
-{
-  for (int i = 0; i < count; i++)
-    {
-      int *ptr = (int *) esp + i + 1;
-      check_addr((void *) ptr);
-      arg[i] = *ptr;
-    }
 }
 
 int
@@ -146,11 +136,11 @@ open (const char *file)
 	struct list *curr_fds = &curr_thread->fd_table;
 	
 	struct fd_table_entry *new_file = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
-	
+	if (new_file)
 	new_file->file_addr = f;
 
 	/* project 2-5 */
-	if (strcmp (thread_current ()->name, new_file) == 0) file_deny_write (f);
+	if (strcmp (thread_current ()->name, file) == 0) file_deny_write (f);
 
 	int n = 3; // 0, 1, 2 는 정해져있기 때문에 3부터 시작
 	list_sort(curr_fds, file_descriptor_less_func, NULL);
@@ -202,13 +192,13 @@ read (int fd, void *buffer, unsigned size)
 {
 	check_addr (buffer);
 	lock_acquire (&file_lock);
-
+	// 
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	
 	if (fdte == NULL){
 		lock_release (&file_lock);
-        // return -1;
-		exit (-1);
+        return -1;
+		//exit (-1);
 	}
 
 	if (fd == 0)
@@ -217,6 +207,7 @@ read (int fd, void *buffer, unsigned size)
 		for (int i = 0; i < size; i++){
 			if (((char *) buffer)[i] == '\0')
             	ret = i;
+				break;
 		}
 		lock_release (&file_lock);
 		return ret;
@@ -234,6 +225,7 @@ read (int fd, void *buffer, unsigned size)
 int 
 write (int fd, const void *buffer, unsigned size)
 {
+	// PANIC("%s", buffer);
 	check_addr (buffer);
 	lock_acquire (&file_lock);
 	
@@ -256,9 +248,13 @@ write (int fd, const void *buffer, unsigned size)
 		exit(-1);
 		// return -1;
 	}
-
-	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	
+	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+	// if (is_kernel_vaddr (fdte->file_addr)) {
+	// 	lock_release (&file_lock);
+	// 	return 0;
+	// }
+
 	if (fdte == NULL){
 		lock_release (&file_lock);
         // return -1;
@@ -271,6 +267,9 @@ write (int fd, const void *buffer, unsigned size)
 	if (get_deny_write(f)) file_deny_write (f);
 
 	int bytes = file_write (fdte->file_addr, buffer, size);
+	
+	
+
 	lock_release (&file_lock);
 	return bytes;
 }
@@ -352,6 +351,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			f->R.rax = remove ((const char *) f->R.rdi);
 			break;
 		case SYS_OPEN:
+			// PANIC("open")
 			f->R.rax = open ((const char *) f->R.rdi);
 			break;
 		case SYS_FILESIZE:
