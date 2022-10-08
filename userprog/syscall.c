@@ -86,12 +86,8 @@ exec (const char *cmd_line)
 	int exec_result = process_exec (cmd_line_copy);
 	palloc_free_page (cmd_line_copy);
 
-<<<<<<< HEAD
-    if (exec_result == -1) return -1;
-=======
     if (exec_result == -1) return(-1);
 	return(0);
->>>>>>> b7d8b46780f065e8fdba8ee170b6f3b379de6bb8
 }
 
 int 
