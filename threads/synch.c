@@ -222,10 +222,13 @@ lock_acquire (struct lock *lock) {
 			list_insert_ordered(&lock->holder->donations, &curr->donation_elem, compare_priority, NULL);
 			donate_priority();
 		}
+		sema_down (&lock->semaphore); //기존 코드	
+		thread_current()->wait_lock = NULL;
 	}
-	sema_down (&lock->semaphore); //기존 코드
+	else {
+		sema_down(&lock ->semaphore);
+	}
 	lock->holder = thread_current (); //기존 코드
-	thread_current()->wait_lock = NULL;
 }
 
 /* project 1-2 */

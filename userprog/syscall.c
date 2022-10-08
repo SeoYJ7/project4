@@ -39,6 +39,9 @@ syscall_init (void) {
 	 * mode stack. Therefore, we masked the FLAG_FL. */
 	write_msr(MSR_SYSCALL_MASK,
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
+
+	/* projcet 2-5 */
+	lock_init (&file_lock);
 }
 
 /* project 2-2 */
@@ -129,13 +132,13 @@ int
 open (const char *file)
 {
 	check_addr (file);
-	//lock_acquire (&file_lock);
+	lock_acquire (&file_lock);
 
 	struct file *f = filesys_open(file);
 
 	if(f == NULL)
 	{
-		//lock_release(&file_lock);
+		lock_release(&file_lock);
 		return -1;
 	}
 
@@ -162,7 +165,7 @@ open (const char *file)
 	list_push_back (curr_fds, &new_file->file_elem);
 
 	int fd = new_file->file_descriptor;
-	//lock_release (&file_lock);
+	lock_release (&file_lock);
 	return fd;
 }
 
@@ -180,17 +183,17 @@ struct fd_table_entry *get_fd_table_entry (int fd, struct list *fd_list)
 int
 filesize (int fd)
 {
-	//lock_acquire(&file_lock);
+	lock_acquire(&file_lock);
 
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 
 	if (fdte == NULL){
-		//lock_release (&file_lock);
+		lock_release (&file_lock);
         return -1;
 	}
 
 	int length = file_length (fdte->file_addr);
-	//lock_release (&file_lock);
+	lock_release (&file_lock);
 	return length;
 }
 
@@ -198,12 +201,12 @@ int
 read (int fd, void *buffer, unsigned size)
 {
 	check_addr (buffer);
-	//lock_acquire (&file_lock);
+	lock_acquire (&file_lock);
 
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	
 	if (fdte == NULL){
-		//lock_release (&file_lock);
+		lock_release (&file_lock);
         // return -1;
 		exit (-1);
 	}
@@ -215,14 +218,14 @@ read (int fd, void *buffer, unsigned size)
 			if (((char *) buffer)[i] == '\0')
             	ret = i;
 		}
-		// lock_release (&lock_filesys);
+		lock_release (&file_lock);
 		return ret;
 	}
 
 	if (fd == 1 || fd == 2) exit (-1); // return -1;
 
 	int bytes = file_read (fdte->file_addr, buffer, size);
-	//lock_release (&file_lock);
+	lock_release (&file_lock);
 	return bytes;
 }
 
@@ -230,11 +233,11 @@ int
 write (int fd, const void *buffer, unsigned size)
 {
 	check_addr (buffer);
-	//lock_acquire (&file_lock);
+	lock_acquire (&file_lock);
 	
 	if (fd == 0)
 	{
-		// lock_release(&lock_filesys);
+		lock_release(&file_lock);
 		// return -1;
 		exit (-1);
 	}
@@ -242,16 +245,20 @@ write (int fd, const void *buffer, unsigned size)
 	if (fd == 1)
 	{
 		putbuf (buffer, size);
-    	//lock_release(&lock_filesys);
+    	lock_release(&file_lock);
     	return size;
 	}
 
-	if (fd == 2) exit (-1); //return -1;
+	if (fd == 2) {
+		lock_release(&file_lock);
+		exit(-1);
+		// return -1;
+	}
 
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	
 	if (fdte == NULL){
-		//lock_release (&file_lock);
+		lock_release (&file_lock);
         // return -1;
 		exit(-1);
 	}
@@ -262,54 +269,54 @@ write (int fd, const void *buffer, unsigned size)
 	if (get_deny_write(f)) file_deny_write (f);
 
 	int bytes = file_write (fdte->file_addr, buffer, size);
-	//lock_release (&file_lock);
+	lock_release (&file_lock);
 	return bytes;
 }
 
 void 
 seek (int fd, unsigned position)
 {
-	//lock_acquire (&file_lock);
+	lock_acquire (&file_lock);
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	if (fdte == NULL)
     {
-        //lock_release (&file_lock);
+        lock_release (&file_lock);
         return -1;
     }
 	file_seek (fdte->file_addr, position);
-	//lock_release (&file_lock);
+	lock_release (&file_lock);
     return;
 }
 
 unsigned
 tell (int fd)
 {
-	//lock_acquire (&file_lock);
+	lock_acquire (&file_lock);
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	if (fdte == NULL)
     {
-        //lock_release (&file_lock);
+        lock_release (&file_lock);
         return -1;
     }
 	unsigned pos = file_tell (fdte->file_addr);
-	//lock_release (&file_lock);
+	lock_release (&file_lock);
 	return pos;
 }
 
 void
 close (int fd)
 {
-	//lock_acquire (&file_lock);
+	lock_acquire (&file_lock);
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	if (fdte == NULL)
     {
-        //lock_release (&file_lock);
+        lock_release (&file_lock);
         return -1;
     }
 	if (fdte->file_addr != NULL) file_close (fdte->file_addr);
     list_remove (&fdte->file_elem);
     free (fdte);
-    //lock_release (&file_lock);
+    lock_release (&file_lock);
 }
 
 /* The main system call interface */
