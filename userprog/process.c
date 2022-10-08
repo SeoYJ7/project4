@@ -64,7 +64,7 @@ process_create_initd (const char *file_name) {
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	
-	// free(real_file_name); // project 2-1
+	free(real_file_name); // project 2-1
 
 	return tid;
 }
@@ -105,7 +105,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *curr = thread_current();
 	curr -> if_ = if_;
 
-	tid_t tid = thread_create (name, 0xBABE, __do_fork, curr);
+	tid_t tid = thread_create (name, -1, __do_fork, curr);
 
 	if (tid == TID_ERROR) {
 		return TID_ERROR;
@@ -113,6 +113,12 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 
 	struct thread *child = find_child(tid);
 	sema_down(&child->fork);
+
+	if (&child->exit_status == -2) {
+		list_remove(&child->child_elem);
+		return TID_ERROR;
+	}
+
 	return tid;
 }
 
@@ -246,6 +252,7 @@ __do_fork (void *aux) {
 	}
 error:
 	/* 실패했다면 sema_up 후 exit(-1) */
+	&current->exit_status == -2;
 	sema_up(&current -> fork);
 	exit(-1);
 	// thread_exit ();
@@ -290,12 +297,11 @@ process_exec (void *f_name) {
 
 	
 	/* project 2-1) Passing Argument */
-
-	/* If load failed, quit. */
 	palloc_free_page (file_name);
 	palloc_free_page(argv);
 	palloc_free_page(address_list);
 	
+	/* If load failed, quit. */
 	if (!success)
 		return -1;
 
