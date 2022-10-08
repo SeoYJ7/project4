@@ -266,7 +266,7 @@ thread_create (const char *name, int priority,
 	ASSERT (function != NULL);
 
 	/* projcet 2-3 Syscall fork */
-	bool is_fork = (priority==0xBABE);
+	bool is_fork = (priority==-1);
 
 	int priority_real = is_fork ? PRI_DEFAULT : priority;
 
@@ -400,6 +400,8 @@ thread_exit (void) {
 	/* Just set our status to dying and schedule another process.
 	   We will be destroyed during the call to schedule_tail(). */
 	intr_disable ();
+
+	list_remove(&thread_current()->elem);
 	do_schedule (THREAD_DYING);
 	NOT_REACHED ();
 }
