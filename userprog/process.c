@@ -293,8 +293,8 @@ process_exec (void *f_name) {
 
 	/* If load failed, quit. */
 	palloc_free_page (file_name);
-	// palloc_free_page(argv);
-	// palloc_free_page(address_list);
+	palloc_free_page(argv);
+	palloc_free_page(address_list);
 	
 	if (!success)
 		return -1;
@@ -344,22 +344,12 @@ process_wait (tid_t child_tid) {
 
 	/* project 2-3 */
 	if (child_tid == TID_ERROR) return -1;
-	struct thread *child_thread;
-	struct list *child_list = &thread_current () -> child_list;
-	for (struct list_elem *temp = list_begin (child_list); temp != list_tail (child_list); temp = list_next (temp))
-	{
-		struct thread *t = list_entry (temp, struct thread, child_elem);
-		if (t->tid == child_tid)
-		{
-			child_thread = t;
-			break;
-		}
-	}
+	struct thread *child_thread = find_child(child_tid);
+	
 	if (child_thread == NULL) return -1;
 
-	list_remove (&child_thread->child_elem);
-
 	sema_down (&child_thread->wait);
+	list_remove (&child_thread->child_elem);
     sema_up (&child_thread->exit);
 
     return child_thread->exit_status;
@@ -830,7 +820,7 @@ args_to_stack(char **argv, int count, struct intr_frame *_if, char **address_lis
 	
 	// strings : 뒤의 argument부터 copy해야 한다.
 	for (int i=count-1; i>=0; i--) {
-		str_len = strlen(argv[i]) + 1;
+		str_len = strlen((char *) argv[i]) + 1;
 		*sp -= str_len;
 		memcpy(*sp, argv[i], str_len);
 		address_list[count-i-1] = *sp;

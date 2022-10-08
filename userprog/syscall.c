@@ -47,7 +47,7 @@ syscall_init (void) {
 pml4_get_page는 PTE가 있더라도 validity가 0이면 NULL을 return하는데 validity가 0인 것은 page_fault가 일어나야 하는 상황이지 exit이 되어야 하는 상황은 아니기에
 pml4e_walk 함수 사용
  */
-void check_addr(void *addr)
+void check_addr(const uint64_t *addr)
 {
 	if (addr == NULL || is_kernel_vaddr (addr) || pml4e_walk(thread_current() -> pml4, addr, 0) == NULL) exit (-1);
 }
@@ -83,6 +83,7 @@ int
 exec (const char *cmd_line)
 {
 	check_addr (cmd_line);
+
 	char *cmd_line_copy = palloc_get_page (PAL_ZERO);
 
 	if (cmd_line_copy == NULL) exit (-1);
@@ -92,7 +93,7 @@ exec (const char *cmd_line)
 	int exec_result = process_exec (cmd_line_copy);
 	palloc_free_page (cmd_line_copy);
 
-    if (exec_result == -1) return -1;
+    if (exec_result == -1) exit(-1);
 }
 
 int 
@@ -227,17 +228,20 @@ write (int fd, const void *buffer, unsigned size)
     	return size;
 	}
 
-	if (fd == 0 || list_empty(&thread_current()->fd_table))
+	if (fd == 0)
 	{
 		// lock_release(&lock_filesys);
-		return 0;
+		return -1;
 	}
+
+	if (fd == 2) exit(-1);
 
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	
 	if (fdte == NULL){
 		//lock_release (&file_lock);
         return -1;
+		// exit(-1);
 	}
 	
 	
