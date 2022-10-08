@@ -137,7 +137,12 @@ open (const char *file)
 	struct list *curr_fds = &curr_thread->fd_table;
 	
 	struct fd_table_entry *new_file = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
-	if (new_file)
+	// if (new_file == NULL) {
+	// 	free(new_file)
+	// }
+	// if (new_file->file_addr == NULL) {
+	// 	free(new_file)
+	// }
 	new_file->file_addr = f;
 
 	/* project 2-5 */
