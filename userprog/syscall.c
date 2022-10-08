@@ -344,8 +344,6 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_CLOSE:
 			close (f->R.rdi);
 			break;
-		default :
-			break;
 		// case SYS_DUP2:
 		// 	f->R.rax = dup2 ((int) f->R.rdi, (int) f->R.rsi);
 		// 	break;

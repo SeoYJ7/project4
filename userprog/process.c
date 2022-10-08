@@ -113,12 +113,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 
 	struct thread *child = find_child(tid);
 	sema_down(&child->fork);
-<<<<<<< HEAD
-
-	return pid;
-=======
 	return tid;
->>>>>>> e84220bb4d0116611c40bcbbbbb7256f8407d1b4
 }
 
 
