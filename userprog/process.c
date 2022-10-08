@@ -59,7 +59,7 @@ process_create_initd (const char *file_name) {
   	real_file_name = strtok_r (real_file_name, " ", &saveptr);
 
 	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (real_file_name, -1, initd, fn_copy); // project 2-1
+	tid = thread_create (real_file_name, PRI_DEFAULT, initd, fn_copy); // project 2-1
 
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
@@ -105,7 +105,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *curr = thread_current();
 	curr -> if_ = if_;
 
-	tid_t tid = thread_create (name, -1, __do_fork, curr);
+	tid_t tid = thread_create (name, 0xBABE, __do_fork, curr);
 
 	if (tid == TID_ERROR) {
 		return TID_ERROR;
@@ -372,12 +372,14 @@ process_exit (void) {
 	process_cleanup ();
 	struct thread *curr = thread_current ();
 
-	/* project 2-5 */
-	lock_acquire(&file_lock);
+	
 
 	/* project 2-3 */
 	/* (1) fd_table에 있는 모든 file들을 free 시킨다. */
 	struct list *fd_table = &curr->fd_table;
+	/* project 2-5 */
+	lock_acquire(&file_lock);
+	
 	while (!list_empty(fd_table)){
 		struct list_elem *temp_ptr = list_pop_front(fd_table);
 		struct fd_table_entry *temp_entry = list_entry(temp_ptr, struct fd_table_entry, file_elem);

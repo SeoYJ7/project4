@@ -266,9 +266,9 @@ thread_create (const char *name, int priority,
 	ASSERT (function != NULL);
 
 	/* projcet 2-3 Syscall fork */
-	bool is_fork = (priority==-1);
+	bool is_fork = (priority==0xBABE);
 
-	int priority_real = (priority == -1) ? PRI_DEFAULT : priority;
+	int priority_real = is_fork ? PRI_DEFAULT : priority;
 
 	/* Allocate thread. */
 	t = palloc_get_page (PAL_ZERO);

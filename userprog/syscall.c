@@ -222,8 +222,10 @@ read (int fd, void *buffer, unsigned size)
 		return ret;
 	}
 
-	if (fd == 1 || fd == 2) exit (-1); // return -1;
-
+	if (fd == 1 || fd == 2) {
+		lock_release (&file_lock);
+		exit (-1); // return -1;
+	}
 	int bytes = file_read (fdte->file_addr, buffer, size);
 	lock_release (&file_lock);
 	return bytes;
