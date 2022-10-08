@@ -139,6 +139,7 @@ open (const char *file)
 	struct fd_table_entry *new_file = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
 	if (new_file == NULL)
 		return NULL;
+
 	new_file->file_addr = f;
 
 	/* project 2-5 */
