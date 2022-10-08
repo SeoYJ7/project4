@@ -320,7 +320,7 @@ int
 args_parsing (char *file_name, char **argv)
 {
     char *token, *save_ptr;
-	int count;
+	int count = 0;
 
     token = strtok_r (file_name, " ", &save_ptr);
 	while (token != NULL){
@@ -328,11 +328,6 @@ args_parsing (char *file_name, char **argv)
         count++;
 		token = strtok_r (NULL, " ", &save_ptr);
 	}
-    // for (count = 0; token != NULL; token = strtok_r (NULL, " ", &save_ptr))
-    // {
-    //     argv[count] = token;
-    //     count++;
-    // }
 
     return count;
 }
@@ -393,6 +388,7 @@ process_exit (void) {
 	while (!list_empty(fd_table)){
 		struct list_elem *temp_ptr = list_pop_front(fd_table);
 		struct fd_table_entry *temp_entry = list_entry(temp_ptr, struct fd_table_entry, file_elem);
+		free(temp_entry->file_addr);
 		free(temp_entry);
 	}
 
