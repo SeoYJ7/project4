@@ -136,11 +136,11 @@ open (const char *file)
 	struct list *curr_fds = &curr_thread->fd_table;
 	
 	struct fd_table_entry *new_file = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
-	
+	if (new_file)
 	new_file->file_addr = f;
 
 	/* project 2-5 */
-	if (strcmp (thread_current ()->name, new_file) == 0) file_deny_write (f);
+	if (strcmp (thread_current ()->name, file) == 0) file_deny_write (f);
 
 	int n = 3; // 0, 1, 2 는 정해져있기 때문에 3부터 시작
 	list_sort(curr_fds, file_descriptor_less_func, NULL);
@@ -250,6 +250,10 @@ write (int fd, const void *buffer, unsigned size)
 	}
 	
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
+	// if (is_kernel_vaddr (fdte->file_addr)) {
+	// 	lock_release (&file_lock);
+	// 	return 0;
+	// }
 
 	if (fdte == NULL){
 		lock_release (&file_lock);
