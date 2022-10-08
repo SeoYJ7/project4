@@ -114,12 +114,13 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *child = find_child(tid);
 	sema_down(&child->fork);
 
-	if (&child->exit_status == -2) {
-		list_remove(&child->child_elem);
-		return TID_ERROR;
-	}
-
-	return tid;
+	if (curr->child_status == 0)
+    {
+        list_remove (&child->child_elem);
+        return TID_ERROR;
+    } else
+        return tid;
+	
 }
 
 
@@ -223,6 +224,7 @@ __do_fork (void *aux) {
 		// PANIC("start for loop");
 		struct fd_table_entry *child_fde = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
 		if (child_fde == NULL) {
+			free(child_fde);
 			goto error;
 		}
 
@@ -233,6 +235,7 @@ __do_fork (void *aux) {
 			child_fde -> file_addr = file_duplicate(parent_fde -> file_addr);
 
 			if (child_fde -> file_addr == NULL) {
+				free(child_fde);
 				goto error;
 			}
 		} else{
@@ -247,12 +250,13 @@ __do_fork (void *aux) {
 	/* Finally, switch to the newly created process. */
 	if (succ){
 		/* 성공했다면 sema_up 통해서 parent에 signal */
+		parent->child_status = 1;
 		sema_up(&current->fork);
 		do_iret (&if_);
 	}
 error:
 	/* 실패했다면 sema_up 후 exit(-1) */
-	&current->exit_status == -2;
+	parent->child_status = 0;
 	sema_up(&current -> fork);
 	exit(-1);
 	// thread_exit ();
