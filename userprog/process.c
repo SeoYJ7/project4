@@ -224,7 +224,6 @@ __do_fork (void *aux) {
 		// PANIC("start for loop");
 		struct fd_table_entry *child_fde = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
 		if (child_fde == NULL) {
-			free(child_fde);
 			goto error;
 		}
 
