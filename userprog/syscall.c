@@ -138,16 +138,19 @@ open (const char *file)
 	
 	struct fd_table_entry *new_file = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
 
-	if (new_file == NULL)
+	if (new_file == NULL){
+		lock_release(&file_lock);
 		return -1;
-
+	}
 	new_file->open_file = (struct open_file *) malloc (sizeof (struct open_file));
 	if (new_file->open_file == NULL){
 		free(new_file);
+		lock_release(&file_lock);
 		return -1;
 	}
 	new_file->open_file->refcnt = 1;
 	new_file->open_file->file_pos = f;
+	new_file->open_file->type = FILE;
 
 	/* project 2-5 */
 	if (strcmp (thread_current ()->name, (char *) file) == 0) file_deny_write (f);
@@ -193,7 +196,19 @@ filesize (int fd)
         return -1;
 	}
 
-	int length = file_length (fdte->open_file->file_pos);
+	int length;
+
+	switch (fdte->open_file->type) {
+		case FILE:
+			length = file_length (fdte->open_file->file_pos);
+			break;
+		case STD_IN:
+		case STD_OUT:
+		case STD_ERR:
+			length = -1;
+			break;
+	}
+	
 	lock_release (&file_lock);
 	return length;
 }
@@ -245,7 +260,10 @@ write (int fd, const void *buffer, unsigned size)
 		lock_release (&file_lock);
 		return -1;
 	}
-	
+	if (fdte->open_file == NULL) {
+		lock_release (&file_lock);
+		return -1;
+	}
 	switch(fdte->open_file->type) 
 	{
 		case STD_OUT:
