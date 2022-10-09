@@ -114,12 +114,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *child = find_child(tid);
 	sema_down(&child->fork);
 
-<<<<<<< HEAD
-	if (curr->child_status == 0)
-    {
-=======
 	if (!curr->child_status) {
->>>>>>> 8f0503c945bf2988221bf02fa31fc8fbf5319cf1
         list_remove (&child->child_elem);
         return TID_ERROR;
     }
@@ -221,34 +216,13 @@ __do_fork (void *aux) {
 	/* (1) parent의 fd table을 children에게도 복제 */
 	struct list_elem *parent_fde_elem;
 	struct list *parent_fd_table = &parent -> fd_table;
+	struct list *child_fd_table = &current -> fd_table;
+
+	bool dup_succ = dup_fde_with_distinct_openfile(parent_fd_table, child_fd_table);
+	if (!dup_succ)
+		goto error;
 	
-	for(parent_fde_elem = list_begin(parent_fd_table); 
-			parent_fde_elem != list_end(parent_fd_table); 
-			parent_fde_elem = list_next(parent_fde_elem)){
-
-		// PANIC("start for loop");
-		struct fd_table_entry *child_fde = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
-		if (child_fde == NULL) {
-			goto error;
-		}
-
-		struct fd_table_entry *parent_fde = list_entry(parent_fde_elem, struct fd_table_entry, file_elem);
-		child_fde -> file_descriptor = parent_fde -> file_descriptor;
-
-		if (parent_fde -> file_addr != NULL) {
-			child_fde -> file_addr = file_duplicate(parent_fde -> file_addr);
-
-			if (child_fde -> file_addr == NULL) {
-				free(child_fde);
-				goto error;
-			}
-		} else{
-			child_fde -> file_addr = NULL;
-		}
-
-		list_push_back(&current -> fd_table, &child_fde -> file_elem);
-	}
-
+	child_fd_table_dup2_reflect(parent_fd_table, child_fd_table);
 	
 
 	/* Finally, switch to the newly created process. */
@@ -319,7 +293,7 @@ process_exec (void *f_name) {
 }
 
 /* project 2-1) passing argument */
-/* command line을 parsing하고 argument 개수도 count하며 Load 시킬 Name도 load_name에 담아주는 함수이다. */
+/* command line을 parsing하고 argument 개수도 open_file->refcnt하며 Load 시킬 Name도 load_name에 담아주는 함수이다. */
 int
 args_parsing (char *file_name, char **argv)
 {
@@ -392,13 +366,7 @@ process_exit (void) {
 	while (!list_empty(fd_table)){
 		struct list_elem *temp_ptr = list_pop_front(fd_table);
 		struct fd_table_entry *temp_entry = list_entry(temp_ptr, struct fd_table_entry, file_elem);
-		// free(temp_entry->file_addr);
-		if (temp_entry->count > 1) {
-			temp_entry->count--;
-		} else {
-			if (temp_entry->file_addr != NULL) file_close(temp_entry->file_addr);
-			free(temp_entry->file_addr);
-		}
+		manage_down_refcnt(temp_entry->open_file);
 		free(temp_entry);
 	}
 
@@ -878,4 +846,104 @@ args_to_stack(char **argv, int count, struct intr_frame *_if, char **address_lis
 	// fake address
 	*sp -= 8;
 	**(uint64_t **) sp = 0;
+}
+
+
+/* project 2-6 Extra */
+bool dup_fde_with_distinct_openfile (struct list *parent_fd_table, struct list *child_fd_table) {
+	struct list_elem *parent_fd_elem;
+	struct list_elem *child_fd_elem;
+
+	struct fd_table_entry *parent_fd_entry, *child_fd_entry;
+	struct open_file *parent_open_file, *child_open_file;
+
+	for (parent_fd_elem = list_begin(parent_fd_table); parent_fd_elem != list_end(parent_fd_table); parent_fd_elem=list_next(parent_fd_elem)){
+		child_fd_entry = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
+		if (child_fd_entry == NULL)
+			return false;
+		
+		parent_fd_entry = list_entry(parent_fd_elem, struct fd_table_entry, file_elem);
+
+		child_fd_entry->open_file = (struct open_file *) malloc(sizeof(struct open_file));
+		if (child_fd_entry->open_file == NULL) {
+			free(child_fd_entry);
+			return false;
+		}
+		child_fd_entry->file_descriptor = parent_fd_entry->file_descriptor;
+		child_open_file = child_fd_entry->open_file;
+		parent_open_file = parent_fd_entry->open_file;
+		/* 같은 open file이어도 무조건 다 다르게 duplicate. 아직은 refcnt가 항상 1인 상황. */
+		child_open_file->refcnt = 1; 
+		child_open_file->type = parent_open_file->type;
+
+		if (parent_open_file->file_pos == NULL) {
+			child_open_file->file_pos == NULL;
+		} else {
+			child_open_file->file_pos = file_duplicate(parent_open_file->file_pos);
+			if (child_open_file->file_pos == NULL) {
+				free(child_open_file);
+				free(child_fd_entry);
+				return false;
+			}
+		}
+		list_push_back(child_fd_table, &child_fd_entry->file_elem);
+	}
+	return true;
+}
+
+
+void child_fd_table_dup2_reflect(struct list *parent_fd_table, struct list *child_fd_table){
+	struct list_elem *parent_fd_elem, *child_fd_elem;
+	struct fd_table_entry *parent_fd_entry, *child_fd_entry;
+	struct open_file *parent_open_file, *child_open_file;
+
+	struct list_elem *parent_dup2_fd_elem, *child_dup2_fd_elem;
+	struct fd_table_entry *parent_dup2_fd_entry, *child_dup2_fd_entry;
+	struct open_file *parent_dup2_open_file, *child_dup2_open_file;
+
+	child_fd_elem = list_begin(child_fd_table);
+	parent_fd_elem = list_begin(parent_fd_table);
+
+	for ( ;parent_fd_elem != list_end(parent_fd_table); parent_fd_elem = list_next(parent_fd_elem)){
+		parent_fd_entry = list_entry(parent_fd_elem, struct fd_table_entry, file_elem);
+		child_fd_entry = list_entry(child_fd_elem, struct fd_table_entry, file_elem);
+		
+		child_open_file = child_fd_entry->open_file;
+		parent_open_file = parent_fd_entry->open_file;
+
+		if (child_open_file->refcnt > 1) {
+			child_fd_elem = list_next(child_fd_elem);
+			continue;
+		}
+
+		if (parent_open_file->refcnt <=1) {
+			child_fd_elem = list_next(child_fd_elem);
+			continue;
+		}
+
+		// 해당 parent_fd_entry와 같은 open_file을 pointing하는 또 다른 parent_fd_entry를 찾고 child에 반영하는 단계
+		parent_dup2_fd_elem = list_next(parent_fd_elem);
+		child_dup2_fd_elem = list_next(child_fd_elem);
+		
+		int dup2_count = parent_open_file->refcnt -1 ;
+		while (dup2_count) {
+			ASSERT(parent_dup2_fd_elem != NULL & child_dup2_fd_elem != NULL);
+			parent_dup2_fd_entry = list_entry(parent_dup2_fd_elem, struct fd_table_entry, file_elem);
+			child_dup2_fd_entry = list_entry(child_dup2_fd_elem, struct fd_table_entry, file_elem);
+			
+			parent_dup2_open_file = parent_dup2_fd_entry->open_file;
+			child_dup2_open_file = child_dup2_fd_entry->open_file;
+
+			if (parent_open_file == parent_dup2_open_file) {
+				file_close(child_dup2_open_file->file_pos);
+				free(child_dup2_open_file);
+				child_dup2_fd_entry->open_file = child_open_file;
+				child_open_file->refcnt++;
+				dup2_count--;
+			}
+			child_dup2_fd_elem = list_next(child_dup2_fd_elem);
+			parent_dup2_fd_elem = list_next(parent_dup2_fd_elem);
+		}
+		child_fd_elem = list_next(child_fd_elem);
+	}
 }

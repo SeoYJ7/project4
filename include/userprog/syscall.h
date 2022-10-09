@@ -27,7 +27,7 @@ enum open_file_type
     STD_OUT,
     STD_ERR,
     FILE
-}
+};
 
 struct open_file {
     struct file *file_pos;
