@@ -142,7 +142,6 @@ open (const char *file)
 		lock_release(&file_lock);
 		return -1;
 	}
-		
 
 	new_file->open_file = (struct open_file *) malloc (sizeof (struct open_file));
 	if (new_file->open_file == NULL){
@@ -198,7 +197,19 @@ filesize (int fd)
         return -1;
 	}
 
-	int length = file_length (fdte->open_file->file_pos);
+	int length;
+
+	switch (fdte->open_file->type) {
+		case FILE:
+			length = file_length (fdte->open_file->file_pos);
+			break;
+		case STD_IN:
+		case STD_OUT:
+		case STD_ERR:
+			length = -1;
+			break;
+	}
+	
 	lock_release (&file_lock);
 	return length;
 }
@@ -250,6 +261,7 @@ write (int fd, const void *buffer, unsigned size)
 		lock_release (&file_lock);
 		return -1;
 	}
+
 	if (fdte->open_file == NULL){
 		lock_release (&file_lock);
 		return -1;
