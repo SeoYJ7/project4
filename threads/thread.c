@@ -658,6 +658,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	list_init(&t->fd_table);
 	sema_init (&t->fork, 0);	
 	t->child_status=1;
+
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
