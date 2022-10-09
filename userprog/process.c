@@ -105,7 +105,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *curr = thread_current();
 	curr -> if_ = if_;
 
-	tid_t tid = thread_create (name, 0xBABE, __do_fork, curr);
+	tid_t tid = thread_create (name, -1, __do_fork, curr);
 
 	if (tid == TID_ERROR) {
 		return TID_ERROR;
@@ -114,7 +114,12 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *child = find_child(tid);
 	sema_down(&child->fork);
 
+<<<<<<< HEAD
+	if (curr->child_status == 0)
+    {
+=======
 	if (!curr->child_status) {
+>>>>>>> 8f0503c945bf2988221bf02fa31fc8fbf5319cf1
         list_remove (&child->child_elem);
         return TID_ERROR;
     }
@@ -224,7 +229,6 @@ __do_fork (void *aux) {
 		// PANIC("start for loop");
 		struct fd_table_entry *child_fde = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
 		if (child_fde == NULL) {
-			free(child_fde);
 			goto error;
 		}
 
@@ -301,12 +305,11 @@ process_exec (void *f_name) {
 
 	
 	/* project 2-1) Passing Argument */
-
-	/* If load failed, quit. */
 	palloc_free_page (file_name);
 	palloc_free_page(argv);
 	palloc_free_page(address_list);
 	
+	/* If load failed, quit. */
 	if (!success)
 		return -1;
 

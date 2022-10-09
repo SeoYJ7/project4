@@ -266,7 +266,7 @@ thread_create (const char *name, int priority,
 	ASSERT (function != NULL);
 
 	/* projcet 2-3 Syscall fork */
-	bool is_fork = (priority==0xBABE);
+	bool is_fork = (priority==-1);
 
 	int priority_real = is_fork ? PRI_DEFAULT : priority;
 
@@ -654,10 +654,10 @@ init_thread (struct thread *t, const char *name, int priority) {
 	sema_init (&t->wait, 0);
     sema_init (&t->exit, 0);
 	t->exit_status  = 0;
-	t->child_status = 1;
 
 	list_init(&t->fd_table);
 	sema_init (&t->fork, 0);	
+	t->child_status=1;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

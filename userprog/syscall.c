@@ -137,9 +137,15 @@ open (const char *file)
 	struct list *curr_fds = &curr_thread->fd_table;
 	
 	struct fd_table_entry *new_file = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
+<<<<<<< HEAD
+	if (new_file == NULL)
+		return NULL;
+
+=======
 	new_file->new_fd = (struct file_holder *) malloc (sizeof (struct file_holder));
 	
 	new_file->count = 1;
+>>>>>>> 8f0503c945bf2988221bf02fa31fc8fbf5319cf1
 	new_file->file_addr = f;
 
 	/* project 2-5 */
@@ -219,7 +225,6 @@ read (int fd, void *buffer, unsigned size)
 
 	if (fd == 1 || fd == 2) {
 		lock_release (&file_lock);
-		// exit (-1);
 		return -1;
 	}
 	int bytes = file_read (fdte->file_addr, buffer, size);
@@ -238,7 +243,6 @@ write (int fd, const void *buffer, unsigned size)
 	{
 		lock_release(&file_lock);
 		return -1;
-		// exit (-1);
 	}
 
 	if (fd == 1)
@@ -250,19 +254,12 @@ write (int fd, const void *buffer, unsigned size)
 
 	if (fd == 2) {
 		lock_release(&file_lock);
-		// exit(-1);
 		return -1;
 	}
 	
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
-	// if (is_kernel_vaddr (fdte->file_addr)) {
-	// 	lock_release (&file_lock);
-	// 	return 0;
-	// }
-
 	if (fdte == NULL){
 		lock_release (&file_lock);
-        // return -1;
 		exit(-1);
 	}
 	
