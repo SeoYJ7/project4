@@ -142,6 +142,7 @@ open (const char *file)
 		lock_release(&file_lock);
 		return -1;
 	}
+
 	new_file->open_file = (struct open_file *) malloc (sizeof (struct open_file));
 	if (new_file->open_file == NULL){
 		free(new_file);
@@ -216,34 +217,34 @@ filesize (int fd)
 int 
 read (int fd, void *buffer, unsigned size)
 {
+	int bytes;
 	check_addr (buffer);
+
 	lock_acquire (&file_lock);
-	// 
+
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	
 	if (fdte == NULL){
 		lock_release (&file_lock);
-        // return -1;
-		exit (-1);
+        return -1;
 	}
 
-	if (fd == 0)
-	{
-		int ret;
-		for (int i = 0; i < size; i++){
-			if (((char *) buffer)[i] == '\0')
-            	ret = i;
-				break;
-		}
-		lock_release (&file_lock);
-		return ret;
+	switch (fdte->open_file->type) {
+		case STD_IN :
+			for (int i = 0; i < size; i++){
+				if (((char *) buffer)[i] == '\0')
+					bytes = i;
+					break;
+			}
+			break;
+		case FILE:
+			bytes = file_read (fdte->open_file->file_pos, buffer, size);
+			break;
+		case STD_OUT:
+		case STD_ERR:
+			bytes = -1;
+			break;			
 	}
-
-	if (fd == 1 || fd == 2) {
-		lock_release (&file_lock);
-		return -1;
-	}
-	int bytes = file_read (fdte->open_file->file_pos, buffer, size);
 	lock_release (&file_lock);
 	return bytes;
 }
@@ -260,7 +261,8 @@ write (int fd, const void *buffer, unsigned size)
 		lock_release (&file_lock);
 		return -1;
 	}
-	if (fdte->open_file == NULL) {
+
+	if (fdte->open_file == NULL){
 		lock_release (&file_lock);
 		return -1;
 	}
@@ -338,12 +340,15 @@ close (int fd)
 void
 manage_down_refcnt (struct open_file *open_file)
 {
+	if (open_file == NULL) ASSERT (0);
     if (open_file->refcnt > 1) {
         open_file->refcnt--;
     } else if (open_file->refcnt == 1) {
         if (open_file->file_pos != NULL) file_close (open_file->file_pos);
         free (open_file);
-    }
+    } else {
+		ASSERT(0);
+	}
 }
 
 int
@@ -375,8 +380,8 @@ dup2(int oldfd, int newfd)
 		list_push_back (&thread_current ()->fd_table, &new_fdte->file_elem);
 	}
 	
-	new_fdte->open_file->file_pos = fdte->open_file->file_pos;
-	new_fdte->open_file->refcnt = fdte->open_file->refcnt + 1;
+	new_fdte->open_file = fdte->open_file;
+	new_fdte->open_file->refcnt++;
 	lock_release (&file_lock);
     return newfd; 
 }
