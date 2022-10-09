@@ -291,7 +291,7 @@ process_exec (void *f_name) {
 }
 
 /* project 2-1) passing argument */
-/* command line을 parsing하고 argument 개수도 open_file->refcnt하며 Load 시킬 Name도 load_name에 담아주는 함수이다. */
+/* command line을 parsing하고 argument 개수도 count하며 Load 시킬 Name도 load_name에 담아주는 함수이다. */
 int
 args_parsing (char *file_name, char **argv)
 {

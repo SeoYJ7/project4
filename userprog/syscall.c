@@ -301,7 +301,11 @@ seek (int fd, unsigned position)
         lock_release (&file_lock);
         return -1;
     }
-	file_seek (fdte->open_file->file_pos, position);
+
+	if (fdte->open_file->type == FILE) {
+		file_seek (fdte->open_file->file_pos, position);
+	}
+
 	lock_release (&file_lock);
     return;
 }
@@ -309,6 +313,7 @@ seek (int fd, unsigned position)
 unsigned
 tell (int fd)
 {
+	unsigned pos;
 	lock_acquire (&file_lock);
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	if (fdte == NULL)
@@ -316,7 +321,12 @@ tell (int fd)
         lock_release (&file_lock);
         return -1;
     }
-	unsigned pos = file_tell (fdte->open_file->file_pos);
+
+	if (fdte->open_file->type == FILE) {
+		pos = file_tell (fdte->open_file->file_pos);
+	} else {
+		pos = -1;
+	}
 	lock_release (&file_lock);
 	return pos;
 }
@@ -337,18 +347,17 @@ close (int fd)
     lock_release (&file_lock);
 }
 
+/* project 2-6 Extra */
+
 void
 manage_down_refcnt (struct open_file *open_file)
 {
-	if (open_file == NULL) ASSERT (0);
     if (open_file->refcnt > 1) {
         open_file->refcnt--;
     } else if (open_file->refcnt == 1) {
         if (open_file->file_pos != NULL) file_close (open_file->file_pos);
         free (open_file);
-    } else {
-		ASSERT(0);
-	}
+    }
 }
 
 int
