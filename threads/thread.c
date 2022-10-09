@@ -287,8 +287,18 @@ thread_create (const char *name, int priority,
 			struct fd_table_entry *default_fd = (struct fd_table_entry *) malloc(sizeof(struct fd_table_entry));
 			if (default_fd == NULL) return TID_ERROR;
 
-			default_fd->file_addr = NULL;
+			default_fd -> open_file = (struct open_file *) malloc(sizeof(struct open_file));
+			if (default_fd ->open_file == NULL) {
+				free(default_fd);
+				return TID_ERROR;
+			}
+
 			default_fd -> file_descriptor = i;
+			/* project 2-6 Extra */
+			default_fd->open_file->file_pos = NULL;
+			default_fd->open_file->type = i; // STDIN, STDOUT, STDERR 순서대로 0,1,2
+			default_fd->open_file->refcnt = 1;
+
 			list_push_back(&t->fd_table, &default_fd->file_elem);
 		}
 	}

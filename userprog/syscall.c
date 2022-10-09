@@ -137,16 +137,17 @@ open (const char *file)
 	struct list *curr_fds = &curr_thread->fd_table;
 	
 	struct fd_table_entry *new_file = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
-<<<<<<< HEAD
-	if (new_file == NULL)
-		return NULL;
 
-=======
-	new_file->new_fd = (struct file_holder *) malloc (sizeof (struct file_holder));
-	
-	new_file->count = 1;
->>>>>>> 8f0503c945bf2988221bf02fa31fc8fbf5319cf1
-	new_file->file_addr = f;
+	if (new_file == NULL)
+		return -1;
+
+	new_file->open_file = (struct open_file *) malloc (sizeof (struct open_file));
+	if (new_file->open_file == NULL){
+		free(new_file);
+		return -1;
+	}
+	new_file->open_file->refcnt = 1;
+	new_file->open_file->file_pos = f;
 
 	/* project 2-5 */
 	if (strcmp (thread_current ()->name, (char *) file) == 0) file_deny_write (f);
@@ -192,7 +193,7 @@ filesize (int fd)
         return -1;
 	}
 
-	int length = file_length (fdte->file_addr);
+	int length = file_length (fdte->open_file->file_pos);
 	lock_release (&file_lock);
 	return length;
 }
@@ -227,7 +228,7 @@ read (int fd, void *buffer, unsigned size)
 		lock_release (&file_lock);
 		return -1;
 	}
-	int bytes = file_read (fdte->file_addr, buffer, size);
+	int bytes = file_read (fdte->open_file->file_pos, buffer, size);
 	lock_release (&file_lock);
 	return bytes;
 }
@@ -235,41 +236,35 @@ read (int fd, void *buffer, unsigned size)
 int 
 write (int fd, const void *buffer, unsigned size)
 {
-	// PANIC("%s", buffer);
+	int bytes;
 	check_addr (buffer);
 	lock_acquire (&file_lock);
-	
-	if (fd == 0)
-	{
-		lock_release(&file_lock);
-		return -1;
-	}
-
-	if (fd == 1)
-	{
-		putbuf (buffer, size);
-    	lock_release(&file_lock);
-    	return size;
-	}
-
-	if (fd == 2) {
-		lock_release(&file_lock);
-		return -1;
-	}
 	
 	struct fd_table_entry *fdte = get_fd_table_entry(fd, &thread_current ()->fd_table);
 	if (fdte == NULL){
 		lock_release (&file_lock);
-		exit(-1);
+		return -1;
 	}
 	
-	/* project 2-5 */
-	if (strcmp (fdte, thread_current ()->name) == 0) file_deny_write (fdte);
-	struct file *f = fdte->file_addr;
-	if (get_deny_write(f)) file_deny_write (f);
+	switch(fdte->open_file->type) 
+	{
+		case STD_OUT:
+			putbuf(buffer, size);
+			bytes = size;
+			break;
+		case FILE:
+			/* project 2-5 */
+			if (strcmp (fdte, thread_current ()->name) == 0) file_deny_write (fdte);
+			struct file *f = fdte->open_file->file_pos;
+			if (get_deny_write(f)) file_deny_write (f);
 
-	int bytes = file_write (fdte->file_addr, buffer, size);
-	
+			bytes = file_write (fdte->open_file->file_pos, buffer, size);
+			break;
+		case STD_IN:
+		case STD_ERR:
+			bytes = -1;
+			break;
+	}
 	
 
 	lock_release (&file_lock);
@@ -286,7 +281,7 @@ seek (int fd, unsigned position)
         lock_release (&file_lock);
         return -1;
     }
-	file_seek (fdte->file_addr, position);
+	file_seek (fdte->open_file->file_pos, position);
 	lock_release (&file_lock);
     return;
 }
@@ -301,7 +296,7 @@ tell (int fd)
         lock_release (&file_lock);
         return -1;
     }
-	unsigned pos = file_tell (fdte->file_addr);
+	unsigned pos = file_tell (fdte->open_file->file_pos);
 	lock_release (&file_lock);
 	return pos;
 }
@@ -316,26 +311,20 @@ close (int fd)
         lock_release (&file_lock);
         return -1;
     }
-	// if (fdte->file_addr != NULL) file_close (fdte->file_addr);
-	if (fdte->count > 1) {
-		fdte->count--;
-	} else {
-		if (fdte->file_addr != NULL) file_close(fdte->file_addr);
-		free(fdte->file_addr);
-	}
+	manage_down_refcnt(fdte->open_file);
     list_remove (&fdte->file_elem);
     free (fdte);
     lock_release (&file_lock);
 }
 
 void
-holder_down (struct file_holder *fh)
+manage_down_refcnt (struct open_file *open_file)
 {
-    if (fh->count > 1) {
-        fh->count--;
-    } else if (fh->count == 1) {
-        if (fh->file_addr != NULL) file_close (fh->file_addr);
-        free (fh);
+    if (open_file->refcnt > 1) {
+        open_file->refcnt--;
+    } else if (open_file->refcnt == 1) {
+        if (open_file->file_pos != NULL) file_close (open_file->file_pos);
+        free (open_file);
     }
 }
 
@@ -344,14 +333,11 @@ dup2(int oldfd, int newfd)
 {
 	lock_acquire (&file_lock);
 	struct fd_table_entry *fdte = get_fd_table_entry(oldfd, &thread_current ()->fd_table);
-	if (fdte == NULL) {
+	if (fdte == NULL || fdte->open_file == NULL) {
         lock_release (&file_lock);
         return -1;
     }
-	if (fdte->file_holder == NULL) {
-        lock_release (&file_lock);
-        return -1;
-    }
+
 	if (oldfd == newfd) {
         lock_release (&file_lock);
         return newfd;
@@ -359,7 +345,7 @@ dup2(int oldfd, int newfd)
 	struct fd_table_entry *new_fdte = get_fd_table_entry(newfd, &thread_current ()->fd_table);
 
 	if (new_fdte != NULL) {
-		holder_down (new_fdte->file_holder)
+		manage_down_refcnt (new_fdte->open_file);
 	} else {
 		new_fdte = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
         if (new_fdte == NULL)
@@ -371,8 +357,8 @@ dup2(int oldfd, int newfd)
 		list_push_back (&thread_current ()->fd_table, &new_fdte->file_elem);
 	}
 	
-	new_fdte->file_addr = fdte->file_addr;
-	new_fdte->count = fdte->count + 1;
+	new_fdte->open_file->file_pos = fdte->open_file->file_pos;
+	new_fdte->open_file->refcnt = fdte->open_file->refcnt + 1;
 	lock_release (&file_lock);
     return newfd; 
 }
