@@ -110,7 +110,6 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	if (tid == TID_ERROR) {
 		return TID_ERROR;
 	}
-
 	struct thread *child = find_child(tid);
 	sema_down(&child->fork);
 
@@ -118,7 +117,6 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
         list_remove (&child->child_elem);
         return TID_ERROR;
     }
-	
 	return tid;
 	
 }
