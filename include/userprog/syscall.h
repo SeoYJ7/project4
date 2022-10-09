@@ -30,7 +30,7 @@ enum open_file_type
 }
 
 struct open_file {
-    struct file *file_addr;
+    struct file *file_pos;
     int refcnt;
     enum open_file_type type;
 };
