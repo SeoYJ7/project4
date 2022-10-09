@@ -137,12 +137,9 @@ open (const char *file)
 	struct list *curr_fds = &curr_thread->fd_table;
 	
 	struct fd_table_entry *new_file = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
-	// if (new_file == NULL) {
-	// 	free(new_file)
-	// }
-	// if (new_file->file_addr == NULL) {
-	// 	free(new_file)
-	// }
+	new_file->new_fd = (struct file_holder *) malloc (sizeof (struct file_holder));
+	
+	new_file->count = 1;
 	new_file->file_addr = f;
 
 	/* project 2-5 */
@@ -157,6 +154,7 @@ open (const char *file)
 		else if (fp->file_descriptor > n) break;
 	}
 	new_file->file_descriptor = n;
+	
 
 	list_push_back (curr_fds, &new_file->file_elem);
 
@@ -321,12 +319,66 @@ close (int fd)
         lock_release (&file_lock);
         return -1;
     }
-	if (fdte->file_addr != NULL) file_close (fdte->file_addr);
+	// if (fdte->file_addr != NULL) file_close (fdte->file_addr);
+	if (fdte->count > 1) {
+		fdte->count--;
+	} else {
+		if (fdte->file_addr != NULL) file_close(fdte->file_addr);
+		free(fdte->file_addr);
+	}
     list_remove (&fdte->file_elem);
     free (fdte);
     lock_release (&file_lock);
 }
 
+void
+holder_down (struct file_holder *fh)
+{
+    if (fh->count > 1) {
+        fh->count--;
+    } else if (fh->count == 1) {
+        if (fh->file_addr != NULL) file_close (fh->file_addr);
+        free (fh);
+    }
+}
+
+int
+dup2(int oldfd, int newfd)
+{
+	lock_acquire (&file_lock);
+	struct fd_table_entry *fdte = get_fd_table_entry(oldfd, &thread_current ()->fd_table);
+	if (fdte == NULL) {
+        lock_release (&file_lock);
+        return -1;
+    }
+	if (fdte->file_holder == NULL) {
+        lock_release (&file_lock);
+        return -1;
+    }
+	if (oldfd == newfd) {
+        lock_release (&file_lock);
+        return newfd;
+    }
+	struct fd_table_entry *new_fdte = get_fd_table_entry(newfd, &thread_current ()->fd_table);
+
+	if (new_fdte != NULL) {
+		holder_down (new_fdte->file_holder)
+	} else {
+		new_fdte = (struct fd_table_entry *) malloc (sizeof (struct fd_table_entry));
+        if (new_fdte == NULL)
+        {
+            lock_release (&file_lock);
+            return -1;
+        }
+		new_fdte->file_descriptor = newfd;
+		list_push_back (&thread_current ()->fd_table, &new_fdte->file_elem);
+	}
+	
+	new_fdte->file_addr = fdte->file_addr;
+	new_fdte->count = fdte->count + 1;
+	lock_release (&file_lock);
+    return newfd; 
+}
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
@@ -379,8 +431,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_CLOSE:
 			close (f->R.rdi);
 			break;
-		// case SYS_DUP2:
-		// 	f->R.rax = dup2 ((int) f->R.rdi, (int) f->R.rsi);
-		// 	break;
+		case SYS_DUP2:
+			f->R.rax = dup2 (f->R.rdi, f->R.rsi);
+			break;
 	}
 }

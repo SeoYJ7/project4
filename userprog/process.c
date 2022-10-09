@@ -389,7 +389,13 @@ process_exit (void) {
 	while (!list_empty(fd_table)){
 		struct list_elem *temp_ptr = list_pop_front(fd_table);
 		struct fd_table_entry *temp_entry = list_entry(temp_ptr, struct fd_table_entry, file_elem);
-		free(temp_entry->file_addr);
+		// free(temp_entry->file_addr);
+		if (temp_entry->count > 1) {
+			temp_entry->count--;
+		} else {
+			if (temp_entry->file_addr != NULL) file_close(temp_entry->file_addr);
+			free(temp_entry->file_addr);
+		}
 		free(temp_entry);
 	}
 
