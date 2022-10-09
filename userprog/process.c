@@ -113,12 +113,13 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 
 	struct thread *child = find_child(tid);
 	sema_down(&child->fork);
-	if (curr->child_status == 0)
-    {
+
+	if (!curr->child_status) {
         list_remove (&child->child_elem);
         return TID_ERROR;
-    } else
-        return tid;
+    }
+	
+	return tid;
 	
 }
 
@@ -249,14 +250,14 @@ __do_fork (void *aux) {
 	/* Finally, switch to the newly created process. */
 	if (succ){
 		/* 성공했다면 sema_up 통해서 parent에 signal */
-		parent->child_status = 1;
 		sema_up(&current->fork);
+		parent->child_status = 1;
 		do_iret (&if_);
 	}
 error:
 	/* 실패했다면 sema_up 후 exit(-1) */
-	parent->child_status = 0;
 	sema_up(&current -> fork);
+	parent->child_status = 0;
 	exit(-1);
 	// thread_exit ();
 }

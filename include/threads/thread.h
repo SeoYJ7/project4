@@ -115,12 +115,12 @@ struct thread {
 	struct semaphore wait;
     struct semaphore exit;
 	int exit_status;
-	int child_status;
 	struct list fd_table;
 
 	/* project 2-3 for fork */
 	struct semaphore fork;
 	struct intr_frame *if_;
+	int child_status;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
