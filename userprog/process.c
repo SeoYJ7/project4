@@ -219,8 +219,9 @@ __do_fork (void *aux) {
 	bool dup_succ = dup_fde_with_distinct_openfile(parent_fd_table, child_fd_table);
 	if (!dup_succ)
 		goto error;
-	
+
 	child_fd_table_dup2_reflect(parent_fd_table, child_fd_table);
+	
 	
 
 	/* Finally, switch to the newly created process. */
@@ -875,7 +876,7 @@ bool dup_fde_with_distinct_openfile (struct list *parent_fd_table, struct list *
 		child_open_file->type = parent_open_file->type;
 
 		if (parent_open_file->file_pos == NULL) {
-			child_open_file->file_pos == NULL;
+			child_open_file->file_pos = NULL;
 		} else {
 			child_open_file->file_pos = file_duplicate(parent_open_file->file_pos);
 			if (child_open_file->file_pos == NULL) {
