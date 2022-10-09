@@ -15,17 +15,25 @@ struct lock file_lock;
 struct fd_table_entry
 {
     struct list_elem file_elem;
-    struct file *file_addr;
-	// struct file_holder *file_holder;
+	struct open_file *open_file;
     int file_descriptor;
 };
 
-/* for 2-EX */
-// struct file_holder {
-//     struct file *file_addr;
-//     int count;
-//     enum std_info std_info;
-// };
+/* project 2-EX */
+
+enum open_file_type
+{
+    STD_IN,
+    STD_OUT,
+    STD_ERR,
+    FILE
+}
+
+struct open_file {
+    struct file *file_addr;
+    int refcnt;
+    enum open_file_type type;
+};
 
 void syscall_init (void);
 

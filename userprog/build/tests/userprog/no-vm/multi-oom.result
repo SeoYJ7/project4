@@ -1,2 +1,1 @@
-FAIL
-run: should have forked at least 40 times, but 30 times forked: FAILED
+PASS

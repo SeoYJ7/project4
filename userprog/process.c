@@ -114,12 +114,17 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	struct thread *child = find_child(tid);
 	sema_down(&child->fork);
 
+<<<<<<< HEAD
 	if (curr->child_status == 0)
     {
+=======
+	if (!curr->child_status) {
+>>>>>>> 8f0503c945bf2988221bf02fa31fc8fbf5319cf1
         list_remove (&child->child_elem);
         return TID_ERROR;
-    } else
-        return tid;
+    }
+	
+	return tid;
 	
 }
 
@@ -249,14 +254,14 @@ __do_fork (void *aux) {
 	/* Finally, switch to the newly created process. */
 	if (succ){
 		/* 성공했다면 sema_up 통해서 parent에 signal */
-		parent->child_status = 1;
 		sema_up(&current->fork);
+		parent->child_status = 1;
 		do_iret (&if_);
 	}
 error:
 	/* 실패했다면 sema_up 후 exit(-1) */
-	parent->child_status = 0;
 	sema_up(&current -> fork);
+	parent->child_status = 0;
 	exit(-1);
 	// thread_exit ();
 }
@@ -387,7 +392,13 @@ process_exit (void) {
 	while (!list_empty(fd_table)){
 		struct list_elem *temp_ptr = list_pop_front(fd_table);
 		struct fd_table_entry *temp_entry = list_entry(temp_ptr, struct fd_table_entry, file_elem);
-		free(temp_entry->file_addr);
+		// free(temp_entry->file_addr);
+		if (temp_entry->count > 1) {
+			temp_entry->count--;
+		} else {
+			if (temp_entry->file_addr != NULL) file_close(temp_entry->file_addr);
+			free(temp_entry->file_addr);
+		}
 		free(temp_entry);
 	}
 
