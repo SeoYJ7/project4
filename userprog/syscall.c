@@ -150,7 +150,7 @@ open (const char *file)
 		return -1;
 	}
 	new_file->open_file->refcnt = 1;
-	new_file->open_file->file_pos = f;
+	new_file->open_file->file_addr = f;
 	new_file->open_file->type = FILE;
 
 	/* project 2-5 */
@@ -201,7 +201,7 @@ filesize (int fd)
 
 	switch (fdte->open_file->type) {
 		case FILE:
-			length = file_length (fdte->open_file->file_pos);
+			length = file_length (fdte->open_file->file_addr);
 			break;
 		case STD_IN:
 		case STD_OUT:
@@ -238,7 +238,7 @@ read (int fd, void *buffer, unsigned size)
 			}
 			break;
 		case FILE:
-			bytes = file_read (fdte->open_file->file_pos, buffer, size);
+			bytes = file_read (fdte->open_file->file_addr, buffer, size);
 			break;
 		case STD_OUT:
 		case STD_ERR:
@@ -275,10 +275,10 @@ write (int fd, const void *buffer, unsigned size)
 		case FILE:
 			/* project 2-5 */
 			if (strcmp (fdte, thread_current ()->name) == 0) file_deny_write (fdte);
-			struct file *f = fdte->open_file->file_pos;
+			struct file *f = fdte->open_file->file_addr;
 			if (get_deny_write(f)) file_deny_write (f);
 
-			bytes = file_write (fdte->open_file->file_pos, buffer, size);
+			bytes = file_write (fdte->open_file->file_addr, buffer, size);
 			break;
 		case STD_IN:
 		case STD_ERR:
@@ -303,7 +303,7 @@ seek (int fd, unsigned position)
     }
 
 	if (fdte->open_file->type == FILE) {
-		file_seek (fdte->open_file->file_pos, position);
+		file_seek (fdte->open_file->file_addr, position);
 	}
 
 	lock_release (&file_lock);
@@ -323,7 +323,7 @@ tell (int fd)
     }
 
 	if (fdte->open_file->type == FILE) {
-		pos = file_tell (fdte->open_file->file_pos);
+		pos = file_tell (fdte->open_file->file_addr);
 	} else {
 		pos = -1;
 	}
@@ -355,7 +355,7 @@ manage_down_refcnt (struct open_file *open_file)
     if (open_file->refcnt > 1) {
         open_file->refcnt--;
     } else if (open_file->refcnt == 1) {
-        if (open_file->file_pos != NULL) file_close (open_file->file_pos);
+        if (open_file->file_addr != NULL) file_close (open_file->file_addr);
         free (open_file);
     }
 }

@@ -379,7 +379,7 @@ process_exit (void) {
 	}
 
 	sema_up(&curr -> wait);
-	sema_down(&curr -> exit);
+	sema_down(&curr->exit);
 }
 
 /* Free the current process's resources. */
@@ -875,11 +875,11 @@ bool dup_fde_with_distinct_openfile (struct list *parent_fd_table, struct list *
 		child_open_file->refcnt = 1; 
 		child_open_file->type = parent_open_file->type;
 
-		if (parent_open_file->file_pos == NULL) {
-			child_open_file->file_pos = NULL;
+		if (parent_open_file->file_addr == NULL) {
+			child_open_file->file_addr = NULL;
 		} else {
-			child_open_file->file_pos = file_duplicate(parent_open_file->file_pos);
-			if (child_open_file->file_pos == NULL) {
+			child_open_file->file_addr = file_duplicate(parent_open_file->file_addr);
+			if (child_open_file->file_addr == NULL) {
 				free(child_open_file);
 				free(child_fd_entry);
 				return false;
@@ -934,7 +934,7 @@ void child_fd_table_dup2_reflect(struct list *parent_fd_table, struct list *chil
 			child_dup2_open_file = child_dup2_fd_entry->open_file;
 
 			if (parent_open_file == parent_dup2_open_file) {
-				file_close(child_dup2_open_file->file_pos);
+				file_close(child_dup2_open_file->file_addr);
 				free(child_dup2_open_file);
 				child_dup2_fd_entry->open_file = child_open_file;
 				child_open_file->refcnt++;

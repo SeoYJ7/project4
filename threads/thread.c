@@ -295,7 +295,7 @@ thread_create (const char *name, int priority,
 
 			default_fd -> file_descriptor = i;
 			/* project 2-6 Extra */
-			default_fd->open_file->file_pos = NULL;
+			default_fd->open_file->file_addr = NULL;
 			default_fd->open_file->type = i; // STDIN, STDOUT, STDERR 순서대로 0,1,2
 			default_fd->open_file->refcnt = 1;
 
@@ -516,7 +516,7 @@ void advanced_priority (struct thread *t)
 {	
 	if (t != idle_thread) {
 		// PRI_MAX – (recent_cpu / 4) – (nice * 2)
-		t->priority = fp_to_int_floor (fp_sub_int (fp_add_int (fp_div_int (t->recent_cpu, -4), PRI_MAX), t->nice * 2));
+		t->priority = PRI_MAX - fp_to_int_floor(fp_div_int(t->recent_cpu, 4)) - (t->nice)*2;
 	}
 }
 /* project1-3 */
@@ -532,7 +532,7 @@ void advanced_load_avg (void)
 {
 	// load_avg = (59/60) * load_avg + (1/60) * ready_threads
 	int ready_threads = (thread_current() != idle_thread) ? (list_size(&ready_list) + 1) : (list_size(&ready_list));
-	load_avg = fp_add_fp (fp_mul_fp (fp_div_fp (int_to_fp (59), int_to_fp (60)), load_avg), fp_mul_int (fp_div_fp (int_to_fp (1), int_to_fp (60)), ready_threads));
+	load_avg = fp_add_fp (fp_mul_fp (fp_div_int (int_to_fp (59), 60), load_avg), fp_mul_int (fp_div_int (int_to_fp (1), 60), ready_threads));
 }
 /* project1-3 */
 void advanced_inc (void)
