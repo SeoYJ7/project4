@@ -266,6 +266,8 @@ write (int fd, const void *buffer, unsigned size)
 		lock_release (&file_lock);
 		return -1;
 	}
+
+	struct file *f = fdte->open_file->file_addr;
 	switch(fdte->open_file->type) 
 	{
 		case STD_OUT:
@@ -274,10 +276,7 @@ write (int fd, const void *buffer, unsigned size)
 			break;
 		case FILE:
 			/* project 2-5 */
-			if (strcmp (fdte, thread_current ()->name) == 0) file_deny_write (fdte);
-			struct file *f = fdte->open_file->file_addr;
 			if (get_deny_write(f)) file_deny_write (f);
-
 			bytes = file_write (fdte->open_file->file_addr, buffer, size);
 			break;
 		case STD_IN:
