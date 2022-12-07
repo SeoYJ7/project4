@@ -1,0 +1,2 @@
+FAIL
+Kernel panic in run: PANIC at ../../filesys/fat.c:236 in sector_to_cluster(): Page fault at 0x2c202564: not present error reading page in kernel context.

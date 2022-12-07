@@ -6,6 +6,7 @@
 #include "filesys/filesys.h"
 #include "filesys/free-map.h"
 #include "threads/malloc.h"
+#include "filesys/fat.h" /* Project 4-1 */
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
@@ -43,10 +44,23 @@ struct inode {
 static disk_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) {
 	ASSERT (inode != NULL);
-	if (pos < inode->data.length)
-		return inode->data.start + pos / DISK_SECTOR_SIZE;
-	else
+	// if (pos < inode->data.length)
+	// 	return inode->data.start + pos / DISK_SECTOR_SIZE;
+	// else
+	// 	return -1;
+	/* Project 4-1 */
+	cluster_t clst;
+	if (pos < inode->data.length) {
+		clst = sector_to_cluster(inode->data.start);
+		for(int i = 0; i < pos / DISK_SECTOR_SIZE; i++) {
+			clst = fat_get(clst);
+		}
+		// return clst;
+		if (clst == EOChain) return -1;
+		return cluster_to_sector(clst);
+	} else {
 		return -1;
+	}
 }
 
 /* List of open inodes, so that opening a single inode twice
@@ -64,6 +78,55 @@ inode_init (void) {
  * disk.
  * Returns true if successful.
  * Returns false if memory or disk allocation fails. */
+/* Project 4-1 */
+#ifdef EFILESYS
+bool
+inode_create(disk_sector_t sector, off_t length)
+{
+	struct inode_disk *disk_inode = NULL;
+	bool success = false;
+
+	ASSERT (length >= 0);
+
+	/* If this assertion fails, the inode structure is not exactly
+	 * one sector in size, and you should fix that. */
+	ASSERT (sizeof *disk_inode == DISK_SECTOR_SIZE);
+
+	disk_inode = calloc (1, sizeof *disk_inode);
+	if (disk_inode != NULL) {
+		size_t sectors = bytes_to_sectors (length);
+		disk_inode->length = length;
+		disk_inode->magic = INODE_MAGIC;
+
+		cluster_t init_clst = fat_create_chain(0);
+		cluster_t temp_clst;
+
+		if(init_clst != 0) {
+			disk_inode->start = cluster_to_sector(init_clst);
+            disk_write(filesys_disk, sector, disk_inode);
+
+			if (sectors > 0) {
+				static char zeros[DISK_SECTOR_SIZE];
+				
+				disk_write(filesys_disk, disk_inode->start, zeros);
+
+				for (int i = 0; i < sectors - 1; i++){
+					temp_clst = fat_create_chain(init_clst);
+                    if(temp_clst == 0) {
+                        fat_remove_chain(sector_to_cluster(disk_inode->start), 0);
+                        free(disk_inode);
+                        return success;
+                    }
+                    disk_write(filesys_disk, cluster_to_sector(temp_clst), zeros);
+				}
+			}
+			success = true; 
+		}
+		free (disk_inode);
+	}
+	return success;
+}
+#else
 bool
 inode_create (disk_sector_t sector, off_t length) {
 	struct inode_disk *disk_inode = NULL;
@@ -94,8 +157,7 @@ inode_create (disk_sector_t sector, off_t length) {
 		free (disk_inode);
 	}
 	return success;
-}
-
+#endif
 /* Reads an inode from SECTOR
  * and returns a `struct inode' that contains it.
  * Returns a null pointer if memory allocation fails. */
@@ -143,6 +205,35 @@ inode_get_inumber (const struct inode *inode) {
 	return inode->sector;
 }
 
+/* Project 4-1 */
+#ifdef EFILESYS
+/* Closes INODE and writes it to disk.
+ * If this was the last reference to INODE, frees its memory.
+ * If INODE was also a removed inode, frees its blocks. */
+void
+inode_close(struct inode *inode)
+{
+    /* Ignore null pointer. */
+    if(inode == NULL)
+        return;
+
+    /* Release resources if this was the last opener. */
+    if(--inode->open_cnt == 0)
+    {
+        /* Remove from inode list and release lock. */
+        list_remove(&inode->elem);
+
+        /* Deallocate blocks if removed. */
+        if(inode->removed)
+        {
+            fat_remove_chain(sector_to_cluster(inode->sector), 0);
+            fat_remove_chain(sector_to_cluster(inode->data.start), 0);
+        }
+        free(inode);
+    }
+}
+
+#else
 /* Closes INODE and writes it to disk.
  * If this was the last reference to INODE, frees its memory.
  * If INODE was also a removed inode, frees its blocks. */
@@ -167,6 +258,7 @@ inode_close (struct inode *inode) {
 		free (inode); 
 	}
 }
+#endif
 
 /* Marks INODE to be deleted when it is closed by the last caller who
  * has it open. */

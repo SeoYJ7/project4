@@ -1,0 +1,14 @@
+FAIL
+Kernel panic in run: PANIC at ../../filesys/fat.c:281 in sector_to_cluster(): assertion `sector >= fat_fs->data_start' failed.
+Call stack: 0x8004214345 0x800421b8b7 0x800421cb2e 0x800421d0aa 0x800421c602 0x800421c7ff 0x800421ac6c 0x800421d9a6 0x80042068c0 0x800420617a
+Translation of call stack:
+0x0000008004214345: debug_panic (lib/kernel/debug.c:32)
+0x000000800421b8b7: sector_to_cluster (filesys/fat.c:283)
+0x000000800421cb2e: byte_to_sector (filesys/inode.c:54)
+0x000000800421d0aa: inode_read_at (filesys/inode.c:282)
+0x000000800421c602: lookup (filesys/directory.c:88 (discriminator 1))
+0x000000800421c7ff: dir_add (filesys/directory.c:140)
+0x000000800421ac6c: filesys_create (filesys/filesys.c:75 (discriminator 3))
+0x000000800421d9a6: fsutil_put (filesys/fsutil.c:108)
+0x00000080042068c0: run_actions (threads/init.c:297)
+0x000000800420617a: main (threads/init.c:125)

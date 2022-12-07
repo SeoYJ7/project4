@@ -1,0 +1,23 @@
+Kernel command line: -q -f put create-long run create-long
+0 ~ 9fc00 1
+100000 ~ 13e0000 1
+Pintos booting with: 
+	base_mem: 0x0 ~ 0x9fc00 (Usable: 639 kB)
+	ext_mem: 0x100000 ~ 0x13e0000 (Usable: 19,328 kB)
+Calibrating timer...  157,081,600 loops/s.
+hd0:0: detected 329 sector (164 kB) disk, model "QEMU HARDDISK", serial "QM00001"
+hd0:1: detected 20,160 sector (9 MB) disk, model "QEMU HARDDISK", serial "QM00002"
+hd1:0: detected 103 sector (51 kB) disk, model "QEMU HARDDISK", serial "QM00003"
+Formatting file system...done.
+Boot complete.
+Putting 'create-long' into the file system...
+Kernel PANIC at ../../filesys/fat.c:236 in sector_to_cluster(): Page fault at 0x2c202564: not present error reading page in kernel context.
+Interrupt 0x0e (#PF Page-Fault Exception) at rip=800421206a
+ cr2=000000002c202564 error=               0
+rax 000000002c202564 rbx 0000000000204400 rcx 0000008004000d3c rdx 00000080042177be
+rsp 0000008004000cb0 rbp 0000008004000d10 rsi 0000008004000d78 rdi 000000002c202564
+rip 000000800421206a r8 0000008004000ccc  r9 00000080042177be r10 000000800421426a
+r11 0000000000000000 r12 0000000000000000 r13 0000000000000000 r14 0000000000000000
+r15 0000000000000000 rflags 00200002
+es: 0010 ds: 0010 cs: 0008 ss: 0010
+Kernel PANIC recursion at ../../userprog/exception.c:97 in kill().
